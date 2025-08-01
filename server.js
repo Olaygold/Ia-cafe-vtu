@@ -38,7 +38,7 @@ app.post("/register", async (req, res) => {
       fullName,
       email,
       phone,
-      balance: 500,  // Signup bonus
+      balance: 2.5,  // Signup bonus
       createdAt: new Date().toISOString()
     });
 
@@ -153,26 +153,29 @@ app.post("/pluzzpay/webhook", async (req, res) => {
       const userSnap = await userRef.get();
       const currentBalance = userSnap.exists() ? userSnap.val().balance || 0 : 0;
 
-      const netAmount = Number(settled_amount);
-      const newBalance = Number(currentBalance) + netAmount;
+      // Apply 2.5% charges
+const grossAmount = Number(amount_paid);
+const fee = +(grossAmount * 0.025).toFixed(2);
+const netAmount = grossAmount - fee;
 
-      // Update balance
-      await userRef.update({ balance: newBalance });
+// Update balance
+const newBalance = Number(currentBalance) + netAmount;
+await userRef.update({ balance: newBalance });
 
-      // Record transaction
-      await database.ref(`vtu/users/${targetUserId}/transactions`).push({
-        type: "deposit",
-        grossAmount: Number(amount_paid),
-        fee: Number(amount_paid) - netAmount,
-        netAmount,
-        status: "SUCCESS",
-        transactionRef: transaction_reference,
-        date: new Date(timestamp * 1000).toISOString()
-      });
+// Record transaction
+await database.ref(`vtu/users/${targetUserId}/transactions`).push({
+  type: "deposit",
+  grossAmount,
+  fee,
+  netAmount,
+  status: "SUCCESS",
+  transactionRef: transaction_reference,
+  date: new Date(timestamp * 1000).toISOString()
+});
 
-      console.log(
-        `✅ Balance updated for user ${targetUserId}: Deposited ₦${amount_paid}, Net ₦${netAmount}`
-      );
+console.log(
+  `✅ Balance updated for user ${targetUserId}: Deposited ₦${grossAmount}, Fee ₦${fee}, Net ₦${netAmount}`
+);
     } else {
       console.warn("⚠️ Ignored webhook, unexpected event or missing data.");
     }

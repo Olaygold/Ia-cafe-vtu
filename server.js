@@ -114,7 +114,77 @@ app.post("/pluzzpay/webhook", async (req, res) => {
   try {
     console.log("📩 PluzzPay Webhook:", req.body);
 
-    const { account_reference, amount, status } = req.body;
+    app.post("/pluzzpay/webhook", async (req, res) => {
+  try {
+    console.log("📩 Raw Webhook Payload:", JSON.stringify(req.body, null, 2));
+
+    const { event, data } = req.body;
+
+    // Ensure event matches a payment notification
+    if (event === "paga.payment.received" && data) {
+      const {
+        account_number,
+        amount_paid,
+        settled_amount,
+        transaction_reference,
+        timestamp
+      } = data;
+
+      // Find the user by account_number instead of account_reference
+      const usersRef = database.ref("vtu/users");
+      const snapshot = await usersRef.get();
+
+      let targetUserId = null;
+      snapshot.forEach(child => {
+        const userData = child.val();
+        if (
+          userData.accountDetails &&
+          userData.accountDetails.accountNumber === account_number
+        ) {
+          targetUserId = child.key;
+        }
+      });
+
+      if (!targetUserId) {
+        console.warn("⚠️ User not found for account_number:", account_number);
+        return res.sendStatus(404);
+      }
+
+      const userRef = database.ref(`vtu/users/${targetUserId}`);
+      const userSnap = await userRef.get();
+      const currentBalance = userSnap.exists() ? userSnap.val().balance || 0 : 0;
+
+      // Use PluzzPay's settled_amount (they already deduct service_fee)
+      const netAmount = Number(settled_amount);
+      const newBalance = Number(currentBalance) + netAmount;
+
+      // Update user balance
+      await userRef.update({ balance: newBalance });
+
+      // Save transaction record
+      await database.ref(`vtu/users/${targetUserId}/transactions`).push({
+        type: "deposit",
+        grossAmount: Number(amount_paid),
+        fee: Number(amount_paid) - netAmount,
+        netAmount,
+        status: "SUCCESS",
+        transactionRef: transaction_reference,
+        date: new Date(timestamp * 1000).toISOString()
+      });
+
+      console.log(
+        `✅ Balance updated for user ${targetUserId}: Deposited ₦${amount_paid}, Net ₦${netAmount}`
+      );
+    } else {
+      console.warn("⚠️ Ignored webhook, unexpected event or missing data.");
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("❌ Webhook Error:", error);
+    res.sendStatus(500);
+  }
+});
 
     if (status === "SUCCESS") {
       // Match the account_reference with user

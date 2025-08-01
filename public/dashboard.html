@@ -226,7 +226,7 @@
     // Fetch user info
     async function loadUserData() {
       try {
-        const res = await fetch("/api/user");
+        const res = await fetch("/api/user/transactions");
         const data = await res.json();
         if (data.success) {
           document.getElementById("userName").innerText = data.user.fullName;

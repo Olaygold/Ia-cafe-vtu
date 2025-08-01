@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IA Cafe Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(to right, #3b0066, #7e3ff2);
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding-top: 80px;
+      padding-bottom: 70px;
+    }
+
+    nav.navbar {
+      background: rgba(0, 0, 0, 0.9);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+    }
+
+    .wallet-display {
+      font-size: 16px;
+      font-weight: bold;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin: 30px auto;
+      max-width: 1000px;
+      padding: 10px;
+    }
+
+    .service-card {
+      background: white;
+      color: black;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      padding: 20px;
+      text-align: center;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .service-card:hover {
+      transform: translateY(-5px);
+      background: #f2f2f2;
+    }
+
+    .service-card i {
+      font-size: 28px;
+      color: #7e3ff2;
+      margin-bottom: 10px;
+    }
+
+    .bottom-nav {
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      height: 60px;
+      z-index: 1000;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.4);
+    }
+
+    .bottom-nav a {
+      color: white;
+      text-align: center;
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    .bottom-nav a i {
+      display: block;
+      font-size: 20px;
+    }
+
+    .bottom-nav a:hover {
+      color: #9c5dfc;
+    }
+
+    /* Transaction History */
+    .history-card {
+      max-width: 1000px;
+      margin: 40px auto;
+      background: white;
+      color: black;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Side Menu -->
+  <div id="sideMenu" class="side-menu">
+    <a href="javascript:void(0)" class="closebtn" onclick="toggleMenu()">&times;</a>
+    <a href="#"><i class="bi bi-house-door"></i> Home</a>
+    <a href="#"><i class="bi bi-phone"></i> Airtime</a>
+    <a href="#"><i class="bi bi-wifi"></i> Data</a>
+    <a href="#"><i class="bi bi-lightning"></i> Bills</a>
+    <a href="#"><i class="bi bi-tv"></i> Cable TV</a>
+    <a href="#"><i class="bi bi-book"></i> Education</a>
+    <a href="#"><i class="bi bi-joystick"></i> Betting</a>
+    <a href="#"><i class="bi bi-credit-card"></i> Gift Cards</a>
+    <a href="#"><i class="bi bi-bus-front"></i> Transport</a>
+    <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
+  </div>
+
+  <!-- Fixed Top Navbar -->
+  <nav class="navbar navbar-dark p-3">
+    <span style="font-size:30px;cursor:pointer;color:white;" onclick="toggleMenu()">&#9776;</span>
+    <h5 class="text-white ms-3" id="greetingText"></h5>
+    <h5 class="text-warning ms-2" id="userName"></h5>
+    <div class="wallet-display">
+      <span id="userBalance">₦0.00</span>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#fundWalletModal">
+        Fund Wallet
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div id="mainContent" class="container text-center">
+
+    <!-- VTU Services -->
+    <div class="services-grid">
+      <div class="service-card"><i class="bi bi-phone"></i><h6>Airtime</h6></div>
+      <div class="service-card"><i class="bi bi-wifi"></i><h6>Data</h6></div>
+      <div class="service-card"><i class="bi bi-lightning"></i><h6>Electricity</h6></div>
+      <div class="service-card"><i class="bi bi-tv"></i><h6>Cable TV</h6></div>
+      <div class="service-card"><i class="bi bi-water"></i><h6>Water Bill</h6></div>
+      <div class="service-card"><i class="bi bi-book"></i><h6>Education</h6></div>
+      <div class="service-card"><i class="bi bi-joystick"></i><h6>Betting</h6></div>
+      <div class="service-card"><i class="bi bi-credit-card"></i><h6>Gift Cards</h6></div>
+      <div class="service-card"><i class="bi bi-bus-front"></i><h6>Transport</h6></div>
+      <div class="service-card"><i class="bi bi-hospital"></i><h6>Insurance</h6></div>
+      <div class="service-card"><i class="bi bi-cash"></i><h6>Other Payments</h6></div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="history-card">
+      <h5>Transaction History</h5>
+      <table class="table table-striped table-hover mt-3">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="historyTable">
+          <tr><td>Airtime</td><td>₦500</td><td class="text-success">Successful</td><td>2025-08-01</td></tr>
+          <tr><td>Data</td><td>₦1500</td><td class="text-danger">Failed</td><td>2025-07-30</td></tr>
+          <tr><td>Electricity</td><td>₦4000</td><td class="text-warning">Pending</td><td>2025-07-29</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Fund Wallet Modal -->
+  <div class="modal fade" id="fundWalletModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-dark">
+        <div class="modal-header">
+          <h5 class="modal-title">Fund Your Wallet</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="accountDetails"></div>
+          <button id="generateAccountBtn" class="btn btn-primary mt-3">Generate Account Number</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fixed Bottom Navbar -->
+  <div class="bottom-nav">
+    <a href="#"><i class="bi bi-house-door"></i>Home</a>
+    <a href="#"><i class="bi bi-people"></i>Team</a>
+    <a href="#"><i class="bi bi-person"></i>Me</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Toggle side menu
+    function toggleMenu() {
+      let menu = document.getElementById("sideMenu");
+      if (menu.style.width === "250px") {
+        menu.style.width = "0";
+        document.getElementById("mainContent").style.marginLeft = "0";
+      } else {
+        menu.style.width = "250px";
+        document.getElementById("mainContent").style.marginLeft = "250px";
+      }
+    }
+
+    // Greeting
+    function setGreeting() {
+      const hour = new Date().getHours();
+      let greet = "Hello";
+      if (hour < 12) greet = "Good Morning";
+      else if (hour < 18) greet = "Good Afternoon";
+      else greet = "Good Evening";
+      document.getElementById("greetingText").innerText = greet;
+    }
+    setGreeting();
+
+    // Fetch user info
+    async function loadUserData() {
+      try {
+        const res = await fetch("/api/user");
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById("userName").innerText = data.user.fullName;
+          document.getElementById("userBalance").innerText = "₦" + (data.user.balance || 0);
+          if (data.user.accountDetails) {
+            document.getElementById("accountDetails").innerHTML = `
+              <p><b>Bank:</b> ${data.user.accountDetails.bank}</p>
+              <p><b>Account Number:</b> ${data.user.accountDetails.accountNumber}</p>
+              <p><b>Account Name:</b> ${data.user.accountDetails.accountName}</p>
+            `;
+            document.getElementById("generateAccountBtn").style.display = "none";
+          }
+        } else {
+          window.location.href = "/";
+        }
+      } catch (err) {
+        console.error("Error loading user:", err);
+      }
+    }
+    loadUserData();
+
+// Load Transaction History
+async function loadTransactionHistory() {
+  try {
+    const res = await fetch("/api/user");
+    const data = await res.json();
+    if (data.success && data.user.transactions) {
+      const historyTable = document.getElementById("historyTable");
+      historyTable.innerHTML = "";
+      Object.values(data.user.transactions).reverse().forEach(tx => {
+        const row = `
+          <tr>
+            <td>${tx.type || "N/A"}</td>
+            <td>₦${tx.netAmount || tx.grossAmount || 0}</td>
+            <td class="${tx.status === 'SUCCESS' ? 'text-success' : tx.status === 'PENDING' ? 'text-warning' : 'text-danger'}">
+              ${tx.status}
+            </td>
+            <td>${new Date(tx.date).toLocaleString()}</td>
+          </tr>
+        `;
+        historyTable.insertAdjacentHTML("beforeend", row);
+      });
+    }
+  } catch (err) {
+    console.error("Error loading history:", err);
+  }
+}
+
+    // Generate Account
+    document.getElementById("generateAccountBtn").addEventListener("click", async () => {
+      const res = await fetch("/generate-account", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        alert("Account generated successfully!");
+        loadUserData();
+      } else {
+        alert("Error: " + data.message);
+      }
+    });
+  </script>
+</body>
+</html>

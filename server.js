@@ -3,14 +3,14 @@ const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-const fetch = require("node-fetch");
+const fetch = require("node-fetch"); // required for API calls
 const { admin, database } = require("./fire");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(bodyParser.json());
+app.use(bodyParser.json()); // For webhooks
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(session({
@@ -77,6 +77,10 @@ app.post("/generate-account", async (req, res) => {
     const user = req.session.user;
     if (!user) return res.json({ success: false, message: "Not logged in" });
 
+    // Fetch phone from DB instead of hardcoding
+    const userSnapshot = await database.ref(`vtu/users/${user.uid}`).get();
+    const phone = userSnapshot.exists() ? userSnapshot.val().phone : "08012345678";
+
     const response = await fetch("https://pluzzpay.com/api/v1/paga-virtual-account.php", {
       method: "POST",
       headers: {
@@ -86,7 +90,7 @@ app.post("/generate-account", async (req, res) => {
       body: JSON.stringify({
         email: user.email,
         name: user.displayName,
-        phone: "08012345678" // ideally fetch from DB
+        phone
       })
     });
 
@@ -109,10 +113,11 @@ app.post("/generate-account", async (req, res) => {
   }
 });
 
-// ✅ Corrected PluzzPay Webhook
+// PluzzPay Webhook - Handles deposits
 app.post("/pluzzpay/webhook", async (req, res) => {
   try {
     console.log("📩 Raw Webhook Payload:", JSON.stringify(req.body, null, 2));
+
     const { event, data } = req.body;
 
     if (event === "paga.payment.received" && data) {
@@ -124,7 +129,7 @@ app.post("/pluzzpay/webhook", async (req, res) => {
         timestamp
       } = data;
 
-      // Find the user by account_number
+      // Find user by account_number
       const usersRef = database.ref("vtu/users");
       const snapshot = await usersRef.get();
 
@@ -151,10 +156,10 @@ app.post("/pluzzpay/webhook", async (req, res) => {
       const netAmount = Number(settled_amount);
       const newBalance = Number(currentBalance) + netAmount;
 
-      // Update user balance
+      // Update balance
       await userRef.update({ balance: newBalance });
 
-      // Save transaction record
+      // Record transaction
       await database.ref(`vtu/users/${targetUserId}/transactions`).push({
         type: "deposit",
         grossAmount: Number(amount_paid),

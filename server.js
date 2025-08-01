@@ -3,14 +3,14 @@ const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-const fetch = require("node-fetch"); // required for API calls
+const fetch = require("node-fetch");
 const { admin, database } = require("./fire");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(bodyParser.json()); // For webhooks
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(session({
@@ -86,7 +86,7 @@ app.post("/generate-account", async (req, res) => {
       body: JSON.stringify({
         email: user.email,
         name: user.displayName,
-        phone: "08012345678" // ideally from DB
+        phone: "08012345678" // ideally fetch from DB
       })
     });
 
@@ -109,18 +109,12 @@ app.post("/generate-account", async (req, res) => {
   }
 });
 
-// PluzzPay Webhook - Handles deposits with 2.5% fee deduction
+// ✅ Corrected PluzzPay Webhook
 app.post("/pluzzpay/webhook", async (req, res) => {
   try {
-    console.log("📩 PluzzPay Webhook:", req.body);
-
-    app.post("/pluzzpay/webhook", async (req, res) => {
-  try {
     console.log("📩 Raw Webhook Payload:", JSON.stringify(req.body, null, 2));
-
     const { event, data } = req.body;
 
-    // Ensure event matches a payment notification
     if (event === "paga.payment.received" && data) {
       const {
         account_number,
@@ -130,7 +124,7 @@ app.post("/pluzzpay/webhook", async (req, res) => {
         timestamp
       } = data;
 
-      // Find the user by account_number instead of account_reference
+      // Find the user by account_number
       const usersRef = database.ref("vtu/users");
       const snapshot = await usersRef.get();
 
@@ -154,7 +148,6 @@ app.post("/pluzzpay/webhook", async (req, res) => {
       const userSnap = await userRef.get();
       const currentBalance = userSnap.exists() ? userSnap.val().balance || 0 : 0;
 
-      // Use PluzzPay's settled_amount (they already deduct service_fee)
       const netAmount = Number(settled_amount);
       const newBalance = Number(currentBalance) + netAmount;
 
@@ -186,77 +179,7 @@ app.post("/pluzzpay/webhook", async (req, res) => {
   }
 });
 
-    if (status === "SUCCESS") {
-      // Match the account_reference with user
-      const usersRef = database.ref("vtu/users");
-      const snapshot = await usersRef.get();
-
-      let targetUserId = null;
-      snapshot.forEach(child => {
-        const userData = child.val();
-        if (userData.accountDetails && userData.accountDetails.accountReference === account_reference) {
-          targetUserId = child.key;
-        }
-      });
-
-      if (!targetUserId) {
-        console.warn("⚠️ User not found for account_reference:", account_reference);
-        return res.sendStatus(404);
-      }
-
-      const userRef = database.ref(`vtu/users/${targetUserId}`);
-      const userSnap = await userRef.get();
-      const currentBalance = userSnap.exists() ? userSnap.val().balance || 0 : 0;
-
-      // Deduct 2.5% fee
-      const fee = Number(amount) * 0.025;
-      const netAmount = Number(amount) - fee;
-      const newBalance = Number(currentBalance) + netAmount;
-
-      // Update user balance
-      await userRef.update({ balance: newBalance });
-
-      // Save transaction record
-      await database.ref(`vtu/users/${targetUserId}/transactions`).push({
-        type: "deposit",
-        grossAmount: Number(amount),
-        fee,
-        netAmount,
-        status: "SUCCESS",
-        date: new Date().toISOString()
-      });
-
-      console.log(`✅ Balance updated for user ${targetUserId}: Deposited ₦${amount}, Fee ₦${fee}, Net ₦${netAmount}`);
-    }
-
-    res.sendStatus(200);
-  } catch (error) {
-    console.error("Webhook Error:", error);
-    res.sendStatus(500);
-  }
-});
-
 // API endpoint to fetch logged-in user info
-app.get("/api/user", async (req, res) => {
-  if (!req.session.user) {
-    return res.json({ success: false });
-  }
-  try {
-    const userRef = database.ref(`vtu/users/${req.session.user.uid}`);
-    const snapshot = await userRef.get();
-
-    if (!snapshot.exists()) {
-      return res.json({ success: false, message: "User not found" });
-    }
-
-    return res.json({ success: true, user: snapshot.val() });
-  } catch (error) {
-    console.error("API User Error:", error);
-    return res.json({ success: false, message: "Internal Server Error" });
-  }
-});
-
-// Serve logged-in user data
 app.get("/api/user", async (req, res) => {
   if (!req.session.user) {
     return res.json({ success: false, message: "Not logged in" });

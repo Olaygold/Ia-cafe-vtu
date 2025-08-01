@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - IA Cafe</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="form-container">
+    <h2>Create Your IA Cafe Account</h2>
+    <form method="POST" action="/register">
+      <input type="text" name="fullName" placeholder="Full Name" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="tel" name="phone" placeholder="Phone Number" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <p><input type="checkbox" required> I agree to the <a href="/terms">Terms & Conditions</a></p>
+      <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="/">Login</a></p>
+  </div>
+</body>
+</html>

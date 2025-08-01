@@ -166,10 +166,7 @@
           </tr>
         </thead>
         <tbody id="historyTable">
-          <tr><td>Airtime</td><td>₦500</td><td class="text-success">Successful</td><td>2025-08-01</td></tr>
-          <tr><td>Data</td><td>₦1500</td><td class="text-danger">Failed</td><td>2025-07-30</td></tr>
-          <tr><td>Electricity</td><td>₦4000</td><td class="text-warning">Pending</td><td>2025-07-29</td></tr>
-        </tbody>
+           </tbody>
       </table>
     </div>
 
@@ -246,17 +243,19 @@
         console.error("Error loading user:", err);
       }
     }
-    loadUserData();
+   loadUserData().then(() => {
+  loadTransactionHistory();
+});
 
 // Load Transaction History
 async function loadTransactionHistory() {
   try {
-    const res = await fetch("/api/user/transactions");
+    const res = await fetch("/api/user");
     const data = await res.json();
-    if (data.success && data.user.transactions) {
+    if (data.success && data.transactions) {
       const historyTable = document.getElementById("historyTable");
       historyTable.innerHTML = "";
-      Object.values(data.user.transactions).reverse().forEach(tx => {
+      Object.values(data.transactions).reverse().forEach(tx => {
         const row = `
           <tr>
             <td>${tx.type || "N/A"}</td>
@@ -274,7 +273,6 @@ async function loadTransactionHistory() {
     console.error("Error loading history:", err);
   }
 }
-
     // Generate Account
     document.getElementById("generateAccountBtn").addEventListener("click", async () => {
       const res = await fetch("/generate-account", { method: "POST" });

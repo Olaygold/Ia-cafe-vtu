@@ -193,7 +193,12 @@ app.get("/api/user", async (req, res) => {
     const userId = req.session.user.uid;
     const snapshot = await database.ref(`vtu/users/${userId}`).get();
     if (snapshot.exists()) {
-      return res.json({ success: true, user: snapshot.val() });
+      const userData = snapshot.val();
+      return res.json({
+        success: true,
+        user: userData,
+        transactions: userData.transactions || {}
+      });
     } else {
       return res.json({ success: false, message: "User not found" });
     }

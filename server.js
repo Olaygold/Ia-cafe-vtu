@@ -112,12 +112,14 @@ app.get("/dashboard", (req, res) => {
 });
 
 // ===== CREATE VIRTUAL ACCOUNT =====
-// ===== CREATE VIRTUAL ACCOUNT =====
 app.post("/generate-account", async (req, res) => {
   try {
     const user = req.session.user;
-    if (!user) return res.json({ success: false, message: "Not logged in" });
+    if (!user) {
+      return res.json({ success: false, message: "Not logged in" });
+    }
 
+    // Get user from Firebase DB
     const userSnapshot = await database.ref(`vtu/users/${user.uid}`).get();
     if (!userSnapshot.exists()) {
       return res.json({ success: false, message: "User not found in database" });
@@ -125,9 +127,20 @@ app.post("/generate-account", async (req, res) => {
 
     const userData = userSnapshot.val();
     if (!userData.phone) {
-      return res.json({ success: false, message: "No phone number found. Please update your phone number." });
+      return res.json({
+        success: false,
+        message: "No phone number found. Please update your phone number."
+      });
     }
 
+    console.log("📤 Sending request to PluzzPay...");
+    console.log("➡️ Payload:", {
+      email: user.email,
+      name: user.displayName,
+      phone: userData.phone
+    });
+
+    // Call PluzzPay API
     const response = await fetch("https://pluzzpay.com/api/v1/paga-virtual-account.php", {
       method: "POST",
       headers: {
@@ -141,16 +154,22 @@ app.post("/generate-account", async (req, res) => {
       })
     });
 
+    const text = await response.text();
+    console.log("📥 Raw response from PluzzPay:", text);
+
     let result;
-    try { 
-      result = await response.json(); 
+    try {
+      result = JSON.parse(text);
     } catch {
-      const text = await response.text();
-      return res.json({ success: false, message: "Invalid JSON from PluzzPay", raw: text });
+      return res.json({
+        success: false,
+        message: "Invalid JSON from PluzzPay",
+        raw: text
+      });
     }
 
     if (result.status) {
-      // Save to Firebase
+      // Save in Firebase
       await database.ref(`vtu/users/${user.uid}/accountDetails`).set({
         bank: result.data.bank_name,
         accountNumber: result.data.account_number,
@@ -158,7 +177,7 @@ app.post("/generate-account", async (req, res) => {
         accountReference: result.data.account_reference
       });
 
-      // Send details back to frontend
+      // Send data to frontend
       return res.json({
         success: true,
         message: result.message,
@@ -167,11 +186,15 @@ app.post("/generate-account", async (req, res) => {
         accountName: result.data.account_name
       });
     } else {
-      return res.json({ success: false, message: result.message });
+      return res.json({
+        success: false,
+        message: result.message || "PluzzPay returned an error",
+        raw: result
+      });
     }
   } catch (error) {
-    console.error("Generate Account Error:", error);
-    return res.json({ success: false, message: "Internal Server Error" });
+    console.error("❌ Generate Account Error:", error);
+    return res.json({ success: false, message: "Internal Server Error", error: error.message });
   }
 });
 

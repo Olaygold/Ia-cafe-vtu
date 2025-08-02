@@ -15,7 +15,6 @@
       padding-top: 80px;
       padding-bottom: 70px;
     }
-
     nav.navbar {
       background: rgba(0, 0, 0, 0.9);
       box-shadow: 0 4px 8px rgba(0,0,0,0.4);
@@ -24,7 +23,6 @@
       width: 100%;
       z-index: 1000;
     }
-
     .wallet-display {
       font-size: 16px;
       font-weight: bold;
@@ -33,7 +31,6 @@
       align-items: center;
       gap: 15px;
     }
-
     .services-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -42,7 +39,6 @@
       max-width: 1000px;
       padding: 10px;
     }
-
     .service-card {
       background: white;
       color: black;
@@ -53,18 +49,15 @@
       transition: transform 0.2s;
       cursor: pointer;
     }
-
     .service-card:hover {
       transform: translateY(-5px);
       background: #f2f2f2;
     }
-
     .service-card i {
       font-size: 28px;
       color: #7e3ff2;
       margin-bottom: 10px;
     }
-
     .bottom-nav {
       background: rgba(0,0,0,0.9);
       display: flex;
@@ -77,24 +70,19 @@
       z-index: 1000;
       box-shadow: 0 -2px 8px rgba(0,0,0,0.4);
     }
-
     .bottom-nav a {
       color: white;
       text-align: center;
       font-size: 14px;
       text-decoration: none;
     }
-
     .bottom-nav a i {
       display: block;
       font-size: 20px;
     }
-
     .bottom-nav a:hover {
       color: #9c5dfc;
     }
-
-    /* Transaction History */
     .history-card {
       max-width: 1000px;
       margin: 40px auto;
@@ -132,14 +120,16 @@
       <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#fundWalletModal">
         Fund Wallet
       </button>
+      <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#withdrawWalletModal" onclick="loadWithdrawals()">
+        Withdraw Funds
+      </button>
     </div>
   </nav>
 
   <!-- Main Content -->
   <div id="mainContent" class="container text-center">
-
-    <!-- VTU Services -->
     <div class="services-grid">
+      <!-- VTU Services -->
       <div class="service-card"><i class="bi bi-phone"></i><h6>Airtime</h6></div>
       <div class="service-card"><i class="bi bi-wifi"></i><h6>Data</h6></div>
       <div class="service-card"><i class="bi bi-lightning"></i><h6>Electricity</h6></div>
@@ -166,10 +156,10 @@
           </tr>
         </thead>
         <tbody id="historyTable">
-           </tbody>
+          <tr><td colspan="4" class="text-center">No transactions yet.</td></tr>
+        </tbody>
       </table>
     </div>
-
   </div>
 
   <!-- Fund Wallet Modal -->
@@ -188,6 +178,63 @@
     </div>
   </div>
 
+  <!-- Withdraw Wallet Modal -->
+  <div class="modal fade" id="withdrawWalletModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content text-dark">
+        <div class="modal-header">
+          <h5 class="modal-title">Withdraw Funds</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-danger">
+            🔔 Note: Withdrawals attract a 4.5% service charge.
+            Funds usually arrive within <b>1 - 25 minutes</b>.
+          </p>
+          <form id="withdrawForm">
+            <div class="mb-3">
+              <label class="form-label">Bank Account Number</label>
+              <input type="text" class="form-control" id="withdrawAccount" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Bank Name</label>
+              <select class="form-select" id="withdrawBank" required>
+                <option value="">Select Bank</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Amount (₦)</label>
+              <input type="number" class="form-control" id="withdrawAmount" min="500" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Amount You’ll Receive (₦)</label>
+              <input type="text" class="form-control" id="netAmount" readonly>
+            </div>
+            <button type="submit" class="btn btn-warning w-100">Request Withdrawal</button>
+          </form>
+          <hr>
+          <h6>Your Withdrawal History</h6>
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Fee</th>
+                  <th>Net Received</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="withdrawHistory">
+                <tr><td colspan="5" class="text-center">No withdrawals yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Fixed Bottom Navbar -->
   <div class="bottom-nav">
     <a href="#"><i class="bi bi-house-door"></i>Home</a>
@@ -197,7 +244,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Toggle side menu
+    // Side menu toggle
     function toggleMenu() {
       let menu = document.getElementById("sideMenu");
       if (menu.style.width === "250px") {
@@ -209,7 +256,7 @@
       }
     }
 
-    // Greeting
+    // Greeting message
     function setGreeting() {
       const hour = new Date().getHours();
       let greet = "Hello";
@@ -243,47 +290,114 @@
         console.error("Error loading user:", err);
       }
     }
-   loadUserData().then(() => {
-  loadTransactionHistory();
-});
+    loadUserData().then(() => {
+      loadTransactionHistory();
+    });
 
-// Load Transaction History
-async function loadTransactionHistory() {
-  try {
-    const res = await fetch("/api/user");
-    const data = await res.json();
-    if (data.success && data.transactions) {
-      const historyTable = document.getElementById("historyTable");
-      historyTable.innerHTML = "";
-      Object.values(data.transactions).reverse().forEach(tx => {
-        const row = `
-          <tr>
-            <td>${tx.type || "N/A"}</td>
-            <td>₦${tx.netAmount || tx.grossAmount || 0}</td>
-            <td class="${tx.status === 'SUCCESS' ? 'text-success' : tx.status === 'PENDING' ? 'text-warning' : 'text-danger'}">
-              ${tx.status}
-            </td>
-            <td>${new Date(tx.date).toLocaleString()}</td>
-          </tr>
-        `;
-        historyTable.insertAdjacentHTML("beforeend", row);
-      });
+    // Transaction history
+    async function loadTransactionHistory() {
+      try {
+        const res = await fetch("/api/user");
+        const data = await res.json();
+        if (data.success && data.transactions) {
+          const historyTable = document.getElementById("historyTable");
+          historyTable.innerHTML = "";
+          Object.values(data.transactions).reverse().forEach(tx => {
+            const row = `
+              <tr>
+                <td>${tx.type || "N/A"}</td>
+                <td>₦${tx.netAmount || tx.grossAmount || 0}</td>
+                <td class="${tx.status === 'SUCCESS' ? 'text-success' : tx.status === 'PENDING' ? 'text-warning' : 'text-danger'}">${tx.status}</td>
+                <td>${new Date(tx.date).toLocaleString()}</td>
+              </tr>
+            `;
+            historyTable.insertAdjacentHTML("beforeend", row);
+          });
+        }
+      } catch (err) {
+        console.error("Error loading history:", err);
+      }
     }
-  } catch (err) {
-    console.error("Error loading history:", err);
-  }
-}
-    // Generate Account
-    document.getElementById("generateAccountBtn").addEventListener("click", async () => {
-      const res = await fetch("/generate-account", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        alert("Account generated successfully!");
-        loadUserData();
-      } else {
-        alert("Error: " + data.message);
+
+    // Load Banks
+    async function loadBanks() {
+      try {
+        const res = await fetch("/getBanks");
+        const data = await res.json();
+        if (data.success) {
+          const bankSelect = document.getElementById("withdrawBank");
+          bankSelect.innerHTML = '<option value="">Select Bank</option>';
+          data.banks.forEach(bank => {
+            const option = document.createElement("option");
+            option.value = bank.code;
+            option.textContent = bank.name;
+            bankSelect.appendChild(option);
+          });
+        }
+      } catch (err) {
+        console.error("Error loading banks:", err);
+      }
+    }
+    loadBanks();
+
+    // Auto-calc Net Amount
+    document.getElementById("withdrawAmount").addEventListener("input", (e) => {
+      const amount = parseFloat(e.target.value) || 0;
+      const fee = amount * 0.045;
+      document.getElementById("netAmount").value = (amount - fee).toFixed(2);
+    });
+
+    // Handle Withdraw Request
+    document.getElementById("withdrawForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const account = document.getElementById("withdrawAccount").value;
+      const bankCode = document.getElementById("withdrawBank").value;
+      const amount = document.getElementById("withdrawAmount").value;
+      try {
+        const res = await fetch("/withdraw", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account, bankCode, amount })
+        });
+        const data = await res.json();
+        alert(data.message);
+        if (data.success) {
+          document.getElementById("withdrawForm").reset();
+          document.getElementById("netAmount").value = "";
+          loadUserData();
+          loadWithdrawals();
+        }
+      } catch (err) {
+        console.error("Withdraw Error:", err);
+        alert("Withdrawal failed. Try again.");
       }
     });
+
+    // Load Withdrawal History
+    async function loadWithdrawals() {
+      try {
+        const res = await fetch("/getWithdrawals");
+        const data = await res.json();
+        const historyTable = document.getElementById("withdrawHistory");
+        historyTable.innerHTML = "";
+        if (data.success && data.withdrawals.length > 0) {
+          data.withdrawals.forEach(w => {
+            const row = `<tr>
+              <td>${new Date(w.date).toLocaleString()}</td>
+              <td>₦${w.amount}</td>
+              <td>₦${w.fee}</td>
+              <td>₦${w.net}</td>
+              <td>${w.status}</td>
+            </tr>`;
+            historyTable.innerHTML += row;
+          });
+        } else {
+          historyTable.innerHTML = `<tr><td colspan="5" class="text-center">No withdrawals yet.</td></tr>`;
+        }
+      } catch (err) {
+        console.error("Error loading withdrawals:", err);
+      }
+    }
   </script>
 </body>
 </html>

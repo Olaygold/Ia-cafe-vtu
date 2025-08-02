@@ -112,6 +112,7 @@ app.get("/dashboard", (req, res) => {
 });
 
 // ===== CREATE VIRTUAL ACCOUNT =====
+
 app.post("/generate-account", async (req, res) => {
   try {
     const user = req.session.user;
@@ -140,18 +141,20 @@ app.post("/generate-account", async (req, res) => {
       phone: userData.phone
     });
 
+    // Convert to x-www-form-urlencoded
+    const params = new URLSearchParams();
+    params.append("email", user.email);
+    params.append("name", user.displayName);
+    params.append("phone", userData.phone);
+
     // Call PluzzPay API
     const response = await fetch("https://pluzzpay.com/api/v1/paga-virtual-account.php", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
         "X-API-KEY": process.env.PLUZZPAY
       },
-      body: JSON.stringify({
-        email: user.email,
-        name: user.displayName,
-        phone: userData.phone
-      })
+      body: params.toString()
     });
 
     const text = await response.text();
@@ -195,63 +198,6 @@ app.post("/generate-account", async (req, res) => {
   } catch (error) {
     console.error("❌ Generate Account Error:", error);
     return res.json({ success: false, message: "Internal Server Error", error: error.message });
-  }
-});
-
-// ===== HANDLE WEBHOOKS =====
-app.post("/pluzzpay/webhook", async (req, res) => {
-  try {
-    if (!verifyWebhook(req, process.env.PLUZZPAY)) {
-      return res.status(401).json({ success: false, message: "Invalid signature" });
-    }
-
-    console.log("📩 Webhook Payload:", JSON.stringify(req.body, null, 2));
-    const { event_type, account_number, amount_paid, transaction_reference, timestamp } = req.body;
-
-    if (["paga.payment.received", "nomba.payment.received", "bell_mfb.payment.received"].includes(event_type)) {
-      const usersRef = database.ref("vtu/users");
-      const snapshot = await usersRef.get();
-
-      let targetUserId = null;
-      snapshot.forEach(child => {
-        const userData = child.val();
-        if (userData.accountDetails && userData.accountDetails.accountNumber === account_number) {
-          targetUserId = child.key;
-        }
-      });
-
-      if (!targetUserId) {
-        console.warn("⚠️ User not found for account_number:", account_number);
-        return res.sendStatus(404);
-      }
-
-      const userRef = database.ref(`vtu/users/${targetUserId}`);
-      const userSnap = await userRef.get();
-      const currentBalance = userSnap.exists() ? userSnap.val().balance || 0 : 0;
-
-      const grossAmount = Number(amount_paid);
-      const newBalance = currentBalance + grossAmount;
-
-      await userRef.update({ balance: newBalance });
-
-      await database.ref(`vtu/users/${targetUserId}/transactions`).push({
-        type: "deposit",
-        amount: grossAmount,
-        transactionRef: transaction_reference,
-        provider: event_type,
-        status: "SUCCESS",
-        date: new Date(timestamp * 1000).toISOString()
-      });
-
-      console.log(`✅ Balance updated for user ${targetUserId}: +₦${grossAmount}`);
-    } else {
-      console.warn("⚠️ Ignored webhook, unexpected event_type:", event_type);
-    }
-
-    res.sendStatus(200);
-  } catch (error) {
-    console.error("❌ Webhook Error:", error);
-    res.sendStatus(500);
   }
 });
 

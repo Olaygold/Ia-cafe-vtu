@@ -65,7 +65,7 @@
 
         if (res.redirected) {
           messageEl.textContent = "✅ Login successful! Redirecting...";
-          messageEl.style.color = "green";
+          messageEl.style.color = "white";
           window.location.href = res.url;
         } else {
           throw new Error("Login failed. Please try again.");

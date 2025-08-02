@@ -1,33 +1,64 @@
+/**
+ * IA Cafe Server
+ * Features:
+ * - User Registration/Login with Firebase Auth
+ * - Dashboard
+ * - Virtual Account Creation (PluzzPay)
+ * - Deposit Webhook Handling (with Signature Verification)
+ * - Withdrawals (Bank Transfer)
+ * - Airtime Purchase (via Jossyfey Data Services)
+ * - Session Handling
+ * - Transaction History
+ */
+
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-const fetch = require("node-fetch"); // required for API calls
+const fetch = require("node-fetch");
+const crypto = require("crypto"); // for webhook verification
 const { admin, database } = require("./fire");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(bodyParser.json()); // For webhooks
+// ===== MIDDLEWARE =====
+app.use(bodyParser.json()); // JSON body parsing
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(session({
-  secret: "IA_CAFE_SECRET_KEY",
+  secret: "IA_CAFE_SECRET_KEY", // Change to a strong secret in production
   resave: false,
   saveUninitialized: true
 }));
 
-// Serve login, register & terms pages
+// ===== HELPER: Verify Webhook Signature =====
+function verifyWebhook(req, apiKey) {
+  try {
+    const signature = req.headers["x-pluzzpay-verification"];
+    const hmac = crypto.createHmac("sha256", apiKey);
+    const computedSignature = hmac.update(JSON.stringify(req.body)).digest("hex");
+
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, "utf8"),
+      Buffer.from(computedSignature, "utf8")
+    );
+  } catch {
+    return false;
+  }
+}
+
+// ===== AUTH & STATIC PAGES =====
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
 app.get("/register", (req, res) => res.sendFile(path.join(__dirname, "public", "register.html")));
 app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "public", "terms.html")));
 
-// Handle registration
+// ===== USER REGISTRATION =====
 app.post("/register", async (req, res) => {
   try {
     const { fullName, email, password, phone } = req.body;
+
     const userRecord = await admin.auth().createUser({
       email,
       password,
@@ -38,7 +69,7 @@ app.post("/register", async (req, res) => {
       fullName,
       email,
       phone,
-      balance: 2.5,  // Signup bonus
+      balance: 2.5, // Signup bonus
       createdAt: new Date().toISOString()
     });
 
@@ -49,7 +80,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Handle login
+// ===== USER LOGIN =====
 app.post("/login", async (req, res) => {
   try {
     const { email } = req.body;
@@ -63,21 +94,18 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Dashboard route
-app.get("/dashboard", async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/");
-  }
+// ===== DASHBOARD =====
+app.get("/dashboard", (req, res) => {
+  if (!req.session.user) return res.redirect("/");
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// Generate PluzzPay Virtual Account
+// ===== CREATE VIRTUAL ACCOUNT =====
 app.post("/generate-account", async (req, res) => {
   try {
     const user = req.session.user;
     if (!user) return res.json({ success: false, message: "Not logged in" });
 
-    // Fetch phone from DB instead of hardcoding
     const userSnapshot = await database.ref(`vtu/users/${user.uid}`).get();
     const phone = userSnapshot.exists() ? userSnapshot.val().phone : "08012345678";
 
@@ -85,7 +113,7 @@ app.post("/generate-account", async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-KEY": process.env.PLUZZYPAY
+        "X-API-KEY": process.env.PLUZZPAY
       },
       body: JSON.stringify({
         email: user.email,
@@ -113,33 +141,26 @@ app.post("/generate-account", async (req, res) => {
   }
 });
 
-// PluzzPay Webhook - Handles deposits
+// ===== HANDLE WEBHOOKS =====
 app.post("/pluzzpay/webhook", async (req, res) => {
   try {
-    console.log("📩 Raw Webhook Payload:", JSON.stringify(req.body, null, 2));
+    // Verify signature
+    if (!verifyWebhook(req, process.env.PLUZZPAY)) {
+      return res.status(401).json({ success: false, message: "Invalid signature" });
+    }
 
-    const { event, data } = req.body;
+    console.log("📩 Webhook Payload:", JSON.stringify(req.body, null, 2));
+    const { event_type, account_number, amount_paid, transaction_reference, timestamp } = req.body;
 
-    if (event === "paga.payment.received" && data) {
-      const {
-        account_number,
-        amount_paid,
-        settled_amount,
-        transaction_reference,
-        timestamp
-      } = data;
-
-      // Find user by account_number
+    // Only handle deposit events
+    if (["paga.payment.received", "nomba.payment.received", "bell_mfb.payment.received"].includes(event_type)) {
       const usersRef = database.ref("vtu/users");
       const snapshot = await usersRef.get();
 
       let targetUserId = null;
       snapshot.forEach(child => {
         const userData = child.val();
-        if (
-          userData.accountDetails &&
-          userData.accountDetails.accountNumber === account_number
-        ) {
+        if (userData.accountDetails && userData.accountDetails.accountNumber === account_number) {
           targetUserId = child.key;
         }
       });
@@ -153,31 +174,25 @@ app.post("/pluzzpay/webhook", async (req, res) => {
       const userSnap = await userRef.get();
       const currentBalance = userSnap.exists() ? userSnap.val().balance || 0 : 0;
 
-      // Apply 2.5% charges
-const grossAmount = Number(amount_paid);
-const fee = +(grossAmount * 0.025).toFixed(2);
-const netAmount = grossAmount - fee;
+      const grossAmount = Number(amount_paid);
+      const newBalance = currentBalance + grossAmount;
 
-// Update balance
-const newBalance = Number(currentBalance) + netAmount;
-await userRef.update({ balance: newBalance });
+      // Update balance
+      await userRef.update({ balance: newBalance });
 
-// Record transaction
-await database.ref(`vtu/users/${targetUserId}/transactions`).push({
-  type: "deposit",
-  grossAmount,
-  fee,
-  netAmount,
-  status: "SUCCESS",
-  transactionRef: transaction_reference,
-  date: new Date(timestamp * 1000).toISOString()
-});
+      // Record transaction
+      await database.ref(`vtu/users/${targetUserId}/transactions`).push({
+        type: "deposit",
+        amount: grossAmount,
+        transactionRef: transaction_reference,
+        provider: event_type,
+        status: "SUCCESS",
+        date: new Date(timestamp * 1000).toISOString()
+      });
 
-console.log(
-  `✅ Balance updated for user ${targetUserId}: Deposited ₦${grossAmount}, Fee ₦${fee}, Net ₦${netAmount}`
-);
+      console.log(`✅ Balance updated for user ${targetUserId}: +₦${grossAmount}`);
     } else {
-      console.warn("⚠️ Ignored webhook, unexpected event or missing data.");
+      console.warn("⚠️ Ignored webhook, unexpected event_type:", event_type);
     }
 
     res.sendStatus(200);
@@ -187,23 +202,28 @@ console.log(
   }
 });
 
-// ===== WITHDRAWAL ROUTES WITH PLUZZPAY =====
+// ===== BANKING ROUTES =====
 
-// 1. Get Bank List
+// 1. Get Banks
 app.get("/getBanks", async (req, res) => {
   try {
     const response = await fetch("https://pluzzpay.com/api/v1/bank-transfer.php?action=getBanks", {
       method: "GET",
-      headers: {
-        "X-API-KEY": process.env.PLUZZPAY
-      }
+      headers: { "X-API-KEY": process.env.PLUZZPAY }
     });
 
-    const result = await response.json();
-    if (result.status) {
-      res.json({ success: true, banks: result.data.banks });
-    } else {
-      res.json({ success: false, message: result.message });
+    const text = await response.text();
+    console.log("Raw Bank List Response:", text);
+
+    try {
+      const result = JSON.parse(text);
+      if (result.status) {
+        return res.json({ success: true, banks: result.data.banks });
+      } else {
+        return res.json({ success: false, message: result.message, errorCode: result.error_code || null });
+      }
+    } catch {
+      return res.json({ success: false, message: "Invalid JSON from PluzzPay", raw: text });
     }
   } catch (error) {
     console.error("Get Banks Error:", error);
@@ -215,24 +235,21 @@ app.get("/getBanks", async (req, res) => {
 app.post("/lookupAccount", async (req, res) => {
   try {
     const { accountNumber, bankCode } = req.body;
+
     const response = await fetch("https://pluzzpay.com/api/v1/bank-transfer.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-API-KEY": process.env.PLUZZPAY
       },
-      body: JSON.stringify({
-        action: "lookup",
-        accountNumber,
-        bankCode
-      })
+      body: JSON.stringify({ action: "lookup", accountNumber, bankCode })
     });
 
     const result = await response.json();
     if (result.status) {
       res.json({ success: true, accountName: result.data.accountName });
     } else {
-      res.json({ success: false, message: result.message });
+      res.json({ success: false, message: result.message, errorCode: result.error_code || null });
     }
   } catch (error) {
     console.error("Account Lookup Error:", error);
@@ -240,7 +257,7 @@ app.post("/lookupAccount", async (req, res) => {
   }
 });
 
-// 3. Withdraw Funds (Send Bank Transfer)
+// 3. Withdraw Funds
 app.post("/withdraw", async (req, res) => {
   try {
     const user = req.session.user;
@@ -253,7 +270,6 @@ app.post("/withdraw", async (req, res) => {
       return res.json({ success: false, message: "Invalid withdrawal details" });
     }
 
-    // Fetch user balance
     const userRef = database.ref(`vtu/users/${user.uid}`);
     const snapshot = await userRef.get();
     if (!snapshot.exists()) return res.json({ success: false, message: "User not found" });
@@ -265,11 +281,11 @@ app.post("/withdraw", async (req, res) => {
       return res.json({ success: false, message: "Insufficient balance" });
     }
 
-    // Apply 4.5% service charge
+    // Service fee
     const fee = +(withdrawAmount * 0.045).toFixed(2);
     const net = +(withdrawAmount - fee).toFixed(2);
 
-    // Send withdrawal request to PluzzPay
+    // Call PluzzPay transfer
     const response = await fetch("https://pluzzpay.com/api/v1/bank-transfer.php", {
       method: "POST",
       headers: {
@@ -286,16 +302,11 @@ app.post("/withdraw", async (req, res) => {
     });
 
     const result = await response.json();
+    if (!result.status) return res.json({ success: false, message: result.message });
 
-    if (!result.status) {
-      return res.json({ success: false, message: result.message });
-    }
-
-    // Deduct full amount (gross) from balance
     const newBalance = +(currentBalance - withdrawAmount).toFixed(2);
     await userRef.update({ balance: newBalance });
 
-    // Record withdrawal in DB
     await database.ref(`vtu/users/${user.uid}/withdrawals`).push({
       amount: withdrawAmount,
       fee,
@@ -310,11 +321,7 @@ app.post("/withdraw", async (req, res) => {
       date: new Date().toISOString()
     });
 
-    return res.json({
-      success: true,
-      message: "Withdrawal initiated successfully!",
-      transaction: result.data
-    });
+    return res.json({ success: true, message: "Withdrawal initiated successfully!", transaction: result.data });
   } catch (error) {
     console.error("Withdrawal Error:", error);
     res.json({ success: false, message: "Internal Server Error" });
@@ -338,62 +345,43 @@ app.get("/getWithdrawals", async (req, res) => {
   }
 });
 
-// Airtime Page Route (Protected)
-
-
-// Airtime Page Route (Protected)
+// ===== AIRTIME ROUTES =====
 app.get("/airtime", (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/?error=Please login first");
-  }
+  if (!req.session.user) return res.redirect("/?error=Please login first");
   res.sendFile(path.join(__dirname, "public", "airtime.html"));
 });
 
-// Airtime Purchase Route
 app.post("/airtime", async (req, res) => {
   try {
     const { serviceID, amount, mobileNumber } = req.body;
     const userId = req.session.user.uid;
 
-    // Fetch user balance
     const userRef = database.ref(`vtu/users/${userId}`);
     const userSnap = await userRef.get();
-    if (!userSnap.exists()) {
-      return res.json({ success: false, message: "User not found" });
-    }
+    if (!userSnap.exists()) return res.json({ success: false, message: "User not found" });
 
-    let userData = userSnap.val();
+    const userData = userSnap.val();
     let currentBalance = Number(userData.balance || 0);
 
-    // Apply 0.5% discount
+    // Apply discount
     const discountedAmount = (Number(amount) * 0.995).toFixed(2);
 
-    if (currentBalance < discountedAmount) {
-      return res.json({ success: false, message: "Insufficient balance" });
-    }
+    if (currentBalance < discountedAmount) return res.json({ success: false, message: "Insufficient balance" });
 
-    // Call VTU API
     const response = await fetch("https://jossyfeydataservices.com.ng/api/airtime", {
       method: "POST",
       headers: {
         "Authorization": `Token ${process.env.DATAVTU_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        serviceID,
-        amount: discountedAmount,
-        mobileNumber
-      })
+      body: JSON.stringify({ serviceID, amount: discountedAmount, mobileNumber })
     });
 
     const result = await response.json();
-
     if (result.status === "success") {
-      // Deduct balance
       const newBalance = currentBalance - discountedAmount;
       await userRef.update({ balance: newBalance });
 
-      // Save transaction
       await database.ref(`vtu/users/${userId}/transactions`).push({
         type: "airtime",
         phone: mobileNumber,
@@ -405,37 +393,26 @@ app.post("/airtime", async (req, res) => {
         date: new Date().toISOString()
       });
 
-      return res.json({
-        success: true,
-        message: result.message,
-        data: result.data,
-        balance: newBalance
-      });
+      return res.json({ success: true, message: result.message, data: result.data, balance: newBalance });
     } else {
       return res.json({ success: false, message: result.message });
     }
-
   } catch (error) {
     console.error("Airtime Purchase Error:", error);
     return res.json({ success: false, message: "Internal Server Error" });
   }
 });
 
-// API endpoint to fetch logged-in user info
+// ===== USER INFO =====
 app.get("/api/user", async (req, res) => {
-  if (!req.session.user) {
-    return res.json({ success: false, message: "Not logged in" });
-  }
+  if (!req.session.user) return res.json({ success: false, message: "Not logged in" });
+
   try {
     const userId = req.session.user.uid;
     const snapshot = await database.ref(`vtu/users/${userId}`).get();
     if (snapshot.exists()) {
       const userData = snapshot.val();
-      return res.json({
-        success: true,
-        user: userData,
-        transactions: userData.transactions || {}
-      });
+      return res.json({ success: true, user: userData, transactions: userData.transactions || {} });
     } else {
       return res.json({ success: false, message: "User not found" });
     }
@@ -445,11 +422,11 @@ app.get("/api/user", async (req, res) => {
   }
 });
 
-// Logout
+// ===== LOGOUT =====
 app.get("/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
 });
 
-app.listen(PORT, () => console.log(`IA Cafe running on port ${PORT}`));
-
+// ===== START SERVER =====
+app.listen(PORT, () => console.log(`🚀 IA Cafe running on port ${PORT}`));

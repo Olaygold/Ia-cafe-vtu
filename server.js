@@ -157,9 +157,47 @@ app.post("/generate-account", async (req, res) => {
 });
 
 // ===== HANDLE WEBHOOKS =====
+
+// Capture raw body for signature verification
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
+
+// ===== Signature Verification Function =====
+function verifyWebhook(req, apiKey) {
+  try {
+    const signature = req.headers["x-pluzzpay-verification"];
+    if (!signature) {
+      console.error("❌ Missing signature header");
+      return false;
+    }
+
+    const payload = req.rawBody || JSON.stringify(req.body);
+    const hmac = crypto.createHmac("sha256", apiKey);
+    const computedSignature = hmac.update(payload).digest("hex");
+
+    // Debugging (remove in production)
+    console.log("🔑 Received signature:", signature);
+    console.log("🔑 Computed signature:", computedSignature);
+
+    if (signature.length !== computedSignature.length) return false;
+
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, "utf8"),
+      Buffer.from(computedSignature, "utf8")
+    );
+  } catch (err) {
+    console.error("Signature Verification Error:", err);
+    return false;
+  }
+}
+
+// ===== HANDLE WEBHOOKS =====
 app.post("/pluzzpay/webhook", async (req, res) => {
   try {
-    // Verify signature
+    // Verify webhook signature
     if (!verifyWebhook(req, process.env.PLUZZPAY)) {
       return res.status(401).json({ success: false, message: "Invalid signature" });
     }
@@ -167,6 +205,7 @@ app.post("/pluzzpay/webhook", async (req, res) => {
     console.log("📩 Webhook Payload:", JSON.stringify(req.body, null, 2));
     const { event_type, account_number, amount_paid, transaction_reference, timestamp } = req.body;
 
+    // Process only known payment events
     if (["paga.payment.received", "nomba.payment.received", "bell_mfb.payment.received"].includes(event_type)) {
       const usersRef = database.ref("vtu/users");
       const snapshot = await usersRef.get();
@@ -191,8 +230,10 @@ app.post("/pluzzpay/webhook", async (req, res) => {
       const grossAmount = Number(amount_paid);
       const newBalance = currentBalance + grossAmount;
 
+      // Update balance
       await userRef.update({ balance: newBalance });
 
+      // Save transaction
       await database.ref(`vtu/users/${targetUserId}/transactions`).push({
         type: "deposit",
         amount: grossAmount,
@@ -213,7 +254,6 @@ app.post("/pluzzpay/webhook", async (req, res) => {
     res.sendStatus(500);
   }
 });
-
 // ===== BANKING ROUTES =====
 
 // 1. Get Banks

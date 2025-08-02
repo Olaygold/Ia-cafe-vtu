@@ -112,6 +112,7 @@ app.get("/dashboard", (req, res) => {
 });
 
 // ===== CREATE VIRTUAL ACCOUNT =====
+// ===== CREATE VIRTUAL ACCOUNT =====
 app.post("/generate-account", async (req, res) => {
   try {
     const user = req.session.user;
@@ -141,20 +142,30 @@ app.post("/generate-account", async (req, res) => {
     });
 
     let result;
-    try { result = await response.json(); }
-    catch {
+    try { 
+      result = await response.json(); 
+    } catch {
       const text = await response.text();
       return res.json({ success: false, message: "Invalid JSON from PluzzPay", raw: text });
     }
 
     if (result.status) {
+      // Save to Firebase
       await database.ref(`vtu/users/${user.uid}/accountDetails`).set({
         bank: result.data.bank_name,
         accountNumber: result.data.account_number,
         accountName: result.data.account_name,
         accountReference: result.data.account_reference
       });
-      return res.json({ success: true, message: result.message });
+
+      // Send details back to frontend
+      return res.json({
+        success: true,
+        message: result.message,
+        bank: result.data.bank_name,
+        accountNumber: result.data.account_number,
+        accountName: result.data.account_name
+      });
     } else {
       return res.json({ success: false, message: result.message });
     }

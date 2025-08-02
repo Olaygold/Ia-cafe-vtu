@@ -11,6 +11,7 @@
 <body>
   <div class="form-container">
     <h2>Welcome to IA Cafe</h2>
+    <!-- Remove action so JS controls submit -->
     <form id="loginForm">
       <input type="email" id="email" placeholder="Email" required>
       <input type="password" id="password" placeholder="Password" required>
@@ -22,8 +23,10 @@
     <p id="message" style="margin-top:10px; font-weight:bold;"></p>
   </div>
 
-  <script>
-    // Your Firebase config
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyDSpnEAsAGQou1Jl2Guy4nlrmtwcnSPoBw",
       authDomain: "ride-35267.firebaseapp.com",
@@ -34,9 +37,8 @@
       appId: "1:736784284446:web:8539c5a00e8adc3467670f"
     };
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const auth = firebase.getAuth(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
     const form = document.getElementById("loginForm");
     const messageEl = document.getElementById("message");
@@ -51,10 +53,10 @@
       messageEl.style.color = "blue";
 
       try {
-        const userCredential = await firebase.signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
 
-        // Send token to your server
+        // Send token to server
         const res = await fetch("/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

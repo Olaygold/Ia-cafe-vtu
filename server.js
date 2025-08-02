@@ -338,13 +338,14 @@ app.get("/getWithdrawals", async (req, res) => {
   }
 });
 
+// Airtime Page Route (Protected)
+app.get("/airtime", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/?error=Please login first");
+  }
+  res.sendFile(path.join(__dirname, "public", "airtime.html"));
+});
 
-
-app.post("/buy-airtime", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.json({ success: false, message: "Not logged in" });
-    }
 
     const { serviceID, amount, mobileNumber } = req.body;
     const userId = req.session.user.uid;

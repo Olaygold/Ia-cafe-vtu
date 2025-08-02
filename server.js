@@ -187,6 +187,158 @@ console.log(
   }
 });
 
+// ===== WITHDRAWAL ROUTES WITH PLUZZPAY =====
+
+// 1. Get Bank List
+app.get("/getBanks", async (req, res) => {
+  try {
+    const response = await fetch("https://pluzzpay.com/api/v1/bank-transfer.php?action=getBanks", {
+      method: "GET",
+      headers: {
+        "X-API-KEY": process.env.PLUZZPAY
+      }
+    });
+
+    const result = await response.json();
+    if (result.status) {
+      res.json({ success: true, banks: result.data.banks });
+    } else {
+      res.json({ success: false, message: result.message });
+    }
+  } catch (error) {
+    console.error("Get Banks Error:", error);
+    res.json({ success: false, message: "Failed to load banks" });
+  }
+});
+
+// 2. Account Lookup
+app.post("/lookupAccount", async (req, res) => {
+  try {
+    const { accountNumber, bankCode } = req.body;
+    const response = await fetch("https://pluzzpay.com/api/v1/bank-transfer.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": process.env.PLUZZPAY
+      },
+      body: JSON.stringify({
+        action: "lookup",
+        accountNumber,
+        bankCode
+      })
+    });
+
+    const result = await response.json();
+    if (result.status) {
+      res.json({ success: true, accountName: result.data.accountName });
+    } else {
+      res.json({ success: false, message: result.message });
+    }
+  } catch (error) {
+    console.error("Account Lookup Error:", error);
+    res.json({ success: false, message: "Lookup failed" });
+  }
+});
+
+// 3. Withdraw Funds (Send Bank Transfer)
+app.post("/withdraw", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.json({ success: false, message: "Not logged in" });
+
+    const { accountNumber, bankCode, amount } = req.body;
+    const withdrawAmount = parseFloat(amount);
+
+    if (!accountNumber || !bankCode || isNaN(withdrawAmount) || withdrawAmount < 500) {
+      return res.json({ success: false, message: "Invalid withdrawal details" });
+    }
+
+    // Fetch user balance
+    const userRef = database.ref(`vtu/users/${user.uid}`);
+    const snapshot = await userRef.get();
+    if (!snapshot.exists()) return res.json({ success: false, message: "User not found" });
+
+    const userData = snapshot.val();
+    const currentBalance = userData.balance || 0;
+
+    if (withdrawAmount > currentBalance) {
+      return res.json({ success: false, message: "Insufficient balance" });
+    }
+
+    // Apply 4.5% service charge
+    const fee = +(withdrawAmount * 0.045).toFixed(2);
+    const net = +(withdrawAmount - fee).toFixed(2);
+
+    // Send withdrawal request to PluzzPay
+    const response = await fetch("https://pluzzpay.com/api/v1/bank-transfer.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": process.env.PLUZZPAY
+      },
+      body: JSON.stringify({
+        action: "transfer",
+        accountNumber,
+        bankCode,
+        amount: net,
+        narration: "IA Cafe Withdrawal"
+      })
+    });
+
+    const result = await response.json();
+
+    if (!result.status) {
+      return res.json({ success: false, message: result.message });
+    }
+
+    // Deduct full amount (gross) from balance
+    const newBalance = +(currentBalance - withdrawAmount).toFixed(2);
+    await userRef.update({ balance: newBalance });
+
+    // Record withdrawal in DB
+    await database.ref(`vtu/users/${user.uid}/withdrawals`).push({
+      amount: withdrawAmount,
+      fee,
+      net,
+      accountNumber,
+      bankCode,
+      bankName: result.data.bankName,
+      accountName: result.data.accountName,
+      transactionId: result.data.transactionId,
+      reference: result.data.reference,
+      status: result.data.status || "PENDING",
+      date: new Date().toISOString()
+    });
+
+    return res.json({
+      success: true,
+      message: "Withdrawal initiated successfully!",
+      transaction: result.data
+    });
+  } catch (error) {
+    console.error("Withdrawal Error:", error);
+    res.json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+// 4. Get Withdrawal History
+app.get("/getWithdrawals", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.json({ success: false, withdrawals: [] });
+
+    const snapshot = await database.ref(`vtu/users/${user.uid}/withdrawals`).get();
+    if (!snapshot.exists()) return res.json({ success: true, withdrawals: [] });
+
+    const withdrawals = Object.values(snapshot.val());
+    res.json({ success: true, withdrawals });
+  } catch (error) {
+    console.error("Get Withdrawals Error:", error);
+    res.json({ success: false, withdrawals: [] });
+  }
+});
+
+
 // API endpoint to fetch logged-in user info
 app.get("/api/user", async (req, res) => {
   if (!req.session.user) {

@@ -339,6 +339,9 @@ app.get("/getWithdrawals", async (req, res) => {
 });
 
 // Airtime Page Route (Protected)
+
+
+// Airtime Page Route (Protected)
 app.get("/airtime", (req, res) => {
   if (!req.session.user) {
     return res.redirect("/?error=Please login first");
@@ -346,7 +349,9 @@ app.get("/airtime", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "airtime.html"));
 });
 
-
+// Airtime Purchase Route
+app.post("/airtime", async (req, res) => {
+  try {
     const { serviceID, amount, mobileNumber } = req.body;
     const userId = req.session.user.uid;
 
@@ -367,7 +372,7 @@ app.get("/airtime", (req, res) => {
       return res.json({ success: false, message: "Insufficient balance" });
     }
 
-    // Call API
+    // Call VTU API
     const response = await fetch("https://jossyfeydataservices.com.ng/api/airtime", {
       method: "POST",
       headers: {
@@ -416,8 +421,6 @@ app.get("/airtime", (req, res) => {
   }
 });
 
-
-
 // API endpoint to fetch logged-in user info
 app.get("/api/user", async (req, res) => {
   if (!req.session.user) {
@@ -449,3 +452,4 @@ app.get("/logout", (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`IA Cafe running on port ${PORT}`));
+

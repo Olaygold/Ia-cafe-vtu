@@ -485,7 +485,7 @@
     // Generate Account Number
     document.getElementById("generateAccountBtn").addEventListener("click", async () => {
       try {
-        const res = await fetch("/generateAccount", { method: "POST" });
+        const res = await fetch("/generate-account", { method: "POST" });
         const data = await res.json();
         if (data.success) {
           document.getElementById("accountDetails").innerHTML = `

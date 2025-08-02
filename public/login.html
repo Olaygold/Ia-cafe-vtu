@@ -4,16 +4,128 @@
   <meta charset="UTF-8">
   <title>Login - IA Cafe</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #2e003e;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .form-container {
+      background: #3c1361;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      width: 320px;
+      text-align: center;
+    }
+    .form-container h2 {
+      margin-bottom: 20px;
+      color: #f2eaff;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 8px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #8e2de2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #a4508b;
+    }
+    .alert {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      display: none;
+    }
+    .alert.success {
+      background: #28a745;
+    }
+    .alert.error {
+      background: #dc3545;
+    }
+  </style>
 </head>
 <body>
   <div class="form-container">
     <h2>Welcome to IA Cafe</h2>
-    <form method="POST" action="/login">
-      <input type="email" name="email" placeholder="Email" required>
-      <input type="password" name="password" placeholder="Password" required>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Password" required>
       <button type="submit">Login</button>
-      <p>Don’t have an account? <a href="/register">Register</a></p>
+      <p>Don’t have an account? <a href="/register" style="color:#c77dff;">Register</a></p>
     </form>
+    <div id="alertBox" class="alert"></div>
   </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+
+  <script>
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDSpnEAsAGQou1Jl2Guy4nlrmtwcnSPoBw",
+      authDomain: "ride-35267.firebaseapp.com",
+      databaseURL: "https://ride-35267-default-rtdb.firebaseio.com",
+      projectId: "ride-35267",
+      storageBucket: "ride-35267.appspot.com",
+      messagingSenderId: "736784284446",
+      appId: "1:736784284446:web:8539c5a00e8adc3467670f"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const loginForm = document.getElementById('loginForm');
+    const alertBox = document.getElementById('alertBox');
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => userCredential.user.getIdToken())
+        .then(idToken => {
+          return fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+          });
+        })
+        .then(res => {
+          if (res.ok) {
+            showAlert('Login successful! Redirecting...', 'success');
+            setTimeout(() => window.location.href = '/dashboard', 1500);
+          } else {
+            showAlert('Server rejected login. Try again.', 'error');
+          }
+        })
+        .catch(err => {
+          showAlert('Login failed: ' + err.message, 'error');
+        });
+    });
+
+    function showAlert(message, type) {
+      alertBox.textContent = message;
+      alertBox.className = 'alert ' + type;
+      alertBox.style.display = 'block';
+    }
+  </script>
 </body>
 </html>

@@ -2,78 +2,128 @@ body {
   font-family: Arial, sans-serif;
   background: linear-gradient(to right, #3b0066, #7e3ff2);
   color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
   margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
-.form-container {
-  background: rgba(0, 0, 0, 0.7);
-  padding: 30px;
-  border-radius: 12px;
-  width: 350px;
-  text-align: center;
-}
-input, button {
-  width: 90%;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: none;
-}
-button {
-  background: #7e3ff2;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-button:hover {
-  background: #9c5dfc;
-}
-a { color: #ffccff; }
 
-.side-menu {
-  height: 100%;
-  width: 0;
-  position: fixed;
-  z-index: 1000;
-  top: 0;
-  left: 0;
-  background-color: #111;
-  overflow-x: hidden;
-  transition: 0.4s;
-  padding-top: 60px;
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
 }
-.side-menu a {
-  padding: 15px 25px;
-  text-decoration: none;
-  font-size: 18px;
-  color: #f1f1f1;
-  display: block;
-  transition: 0.3s;
-}
-.side-menu a:hover {
-  background-color: #575757;
-}
-.side-menu .closebtn {
-  position: absolute;
-  top: 10px;
-  right: 20px;
-  font-size: 30px;
-}
-#mainContent {
-  transition: margin-left 0.4s;
-  padding: 20px;
-}
+
+/* Balance + Action Buttons */
 .balance-card {
+  width: 95%;
+  max-width: 400px;
+  padding: 15px;
+  margin-bottom: 20px;
   background: linear-gradient(135deg, #6a11cb, #2575fc);
   color: white;
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  text-align: center;
+  font-size: 16px;
 }
-.fund-card {
+
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+}
+.action-buttons button {
+  flex: 1;
+  margin: 5px;
+  padding: 12px;
+  background: #7e3ff2;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.action-buttons button:hover {
+  background: #9c5dfc;
+}
+
+/* Services Grid */
+.services-grid {
+  width: 100%;
+  max-width: 420px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 15px;
+}
+.service-card {
   background: #fff;
-  border-radius: 15px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  color: #333;
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.2s;
 }
+.service-card:hover {
+  transform: scale(1.05);
+}
+.service-card i {
+  font-size: 20px;
+  color: #7e3ff2;
+  display: block;
+  margin-bottom: 5px;
+}
+
+/* Transaction History */
+.transaction-history {
+  margin-top: 20px;
+  width: 95%;
+  max-width: 450px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 13px;
+}
+.transaction-history table {
+  width: 100%;
+  border-collapse: collapse;
+  color: white;
+}
+.transaction-history th, .transaction-history td {
+  padding: 8px;
+  border-bottom: 1px solid #666;
+}
+
+/* Bottom Nav */
+.bottom-nav {
+  background: #111;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  border-top: 2px solid #7e3ff2;
+}
+.bottom-nav a {
+  color: white;
+  text-decoration: none;
+  font-size: 13px;
+  text-align: center;
+}
+.bottom-nav i {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 3px;
+  }

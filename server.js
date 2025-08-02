@@ -1,5 +1,5 @@
 /**
- * IA Cafe Server
+ * IA Cafe Server - Final Production Version
  *
  * Features:
  * - User Registration/Login with Firebase Auth
@@ -25,16 +25,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ===== MIDDLEWARE =====
-// Parse JSON and keep raw body for webhook verification
 app.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString();
-  }
+  verify: (req, res, buf) => { req.rawBody = buf.toString(); }
 }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(session({
-  secret: "IA_CAFE_SECRET_KEY", // Change to a strong secret in production
+  secret: process.env.SESSION_SECRET || "IA_CAFE_SECRET_KEY", // use env for security
   resave: false,
   saveUninitialized: true
 }));
@@ -43,21 +40,26 @@ app.use(session({
 function verifyWebhook(req, apiKey) {
   try {
     const signature = req.headers["x-pluzzpay-verification"] || req.headers["x-pluzzpay-signature"];
-    if (!signature) return false;
+    if (!signature) {
+      console.error("❌ Missing signature header");
+      return false;
+    }
 
+    const payload = req.rawBody || JSON.stringify(req.body);
     const hmac = crypto.createHmac("sha256", apiKey);
-    const computedSignature = hmac.update(req.rawBody).digest("hex");
+    const computedSignature = hmac.update(payload).digest("hex");
 
     return crypto.timingSafeEqual(
       Buffer.from(signature, "utf8"),
       Buffer.from(computedSignature, "utf8")
     );
-  } catch {
+  } catch (err) {
+    console.error("Signature Verification Error:", err);
     return false;
   }
 }
 
-// ===== AUTH & STATIC PAGES =====
+// ===== STATIC PAGES =====
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
 app.get("/register", (req, res) => res.sendFile(path.join(__dirname, "public", "register.html")));
 app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "public", "terms.html")));
@@ -88,7 +90,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// ===== USER LOGIN (via Firebase ID token) =====
+// ===== USER LOGIN =====
 app.post("/login", async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -116,7 +118,14 @@ app.post("/generate-account", async (req, res) => {
     if (!user) return res.json({ success: false, message: "Not logged in" });
 
     const userSnapshot = await database.ref(`vtu/users/${user.uid}`).get();
-    const phone = userSnapshot.exists() ? userSnapshot.val().phone : "08012345678";
+    if (!userSnapshot.exists()) {
+      return res.json({ success: false, message: "User not found in database" });
+    }
+
+    const userData = userSnapshot.val();
+    if (!userData.phone) {
+      return res.json({ success: false, message: "No phone number found. Please update your phone number." });
+    }
 
     const response = await fetch("https://pluzzpay.com/api/v1/paga-virtual-account.php", {
       method: "POST",
@@ -127,14 +136,13 @@ app.post("/generate-account", async (req, res) => {
       body: JSON.stringify({
         email: user.email,
         name: user.displayName,
-        phone
+        phone: userData.phone
       })
     });
 
     let result;
-    try {
-      result = await response.json();
-    } catch {
+    try { result = await response.json(); }
+    catch {
       const text = await response.text();
       return res.json({ success: false, message: "Invalid JSON from PluzzPay", raw: text });
     }
@@ -157,47 +165,8 @@ app.post("/generate-account", async (req, res) => {
 });
 
 // ===== HANDLE WEBHOOKS =====
-
-// Capture raw body for signature verification
-app.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString();
-  }
-}));
-
-// ===== Signature Verification Function =====
-function verifyWebhook(req, apiKey) {
-  try {
-    const signature = req.headers["x-pluzzpay-verification"];
-    if (!signature) {
-      console.error("❌ Missing signature header");
-      return false;
-    }
-
-    const payload = req.rawBody || JSON.stringify(req.body);
-    const hmac = crypto.createHmac("sha256", apiKey);
-    const computedSignature = hmac.update(payload).digest("hex");
-
-    // Debugging (remove in production)
-    console.log("🔑 Received signature:", signature);
-    console.log("🔑 Computed signature:", computedSignature);
-
-    if (signature.length !== computedSignature.length) return false;
-
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, "utf8"),
-      Buffer.from(computedSignature, "utf8")
-    );
-  } catch (err) {
-    console.error("Signature Verification Error:", err);
-    return false;
-  }
-}
-
-// ===== HANDLE WEBHOOKS =====
 app.post("/pluzzpay/webhook", async (req, res) => {
   try {
-    // Verify webhook signature
     if (!verifyWebhook(req, process.env.PLUZZPAY)) {
       return res.status(401).json({ success: false, message: "Invalid signature" });
     }
@@ -205,7 +174,6 @@ app.post("/pluzzpay/webhook", async (req, res) => {
     console.log("📩 Webhook Payload:", JSON.stringify(req.body, null, 2));
     const { event_type, account_number, amount_paid, transaction_reference, timestamp } = req.body;
 
-    // Process only known payment events
     if (["paga.payment.received", "nomba.payment.received", "bell_mfb.payment.received"].includes(event_type)) {
       const usersRef = database.ref("vtu/users");
       const snapshot = await usersRef.get();
@@ -230,10 +198,8 @@ app.post("/pluzzpay/webhook", async (req, res) => {
       const grossAmount = Number(amount_paid);
       const newBalance = currentBalance + grossAmount;
 
-      // Update balance
       await userRef.update({ balance: newBalance });
 
-      // Save transaction
       await database.ref(`vtu/users/${targetUserId}/transactions`).push({
         type: "deposit",
         amount: grossAmount,
@@ -254,9 +220,10 @@ app.post("/pluzzpay/webhook", async (req, res) => {
     res.sendStatus(500);
   }
 });
+
 // ===== BANKING ROUTES =====
 
-// 1. Get Banks
+// Get Banks
 app.get("/getBanks", async (req, res) => {
   try {
     const response = await fetch("https://pluzzpay.com/api/v1/bank-transfer.php?action=getBanks", {
@@ -265,8 +232,6 @@ app.get("/getBanks", async (req, res) => {
     });
 
     const text = await response.text();
-    console.log("Raw Bank List Response:", text);
-
     try {
       const result = JSON.parse(text);
       if (result.status) {
@@ -283,11 +248,10 @@ app.get("/getBanks", async (req, res) => {
   }
 });
 
-// 2. Account Lookup
+// Account Lookup
 app.post("/lookupAccount", async (req, res) => {
   try {
     const { accountNumber, bankCode } = req.body;
-
     const response = await fetch("https://pluzzpay.com/api/v1/bank-transfer.php", {
       method: "POST",
       headers: {
@@ -309,7 +273,7 @@ app.post("/lookupAccount", async (req, res) => {
   }
 });
 
-// 3. Withdraw Funds
+// Withdraw Funds
 app.post("/withdraw", async (req, res) => {
   try {
     const user = req.session.user;
@@ -378,7 +342,7 @@ app.post("/withdraw", async (req, res) => {
   }
 });
 
-// 4. Get Withdrawal History
+// Get Withdrawal History
 app.get("/getWithdrawals", async (req, res) => {
   try {
     const user = req.session.user;
@@ -397,13 +361,13 @@ app.get("/getWithdrawals", async (req, res) => {
 
 // ===== AIRTIME ROUTES =====
 
-// Show Airtime Page
+// Airtime Page
 app.get("/airtime", (req, res) => {
   if (!req.session.user) return res.redirect("/?error=Please login first");
   res.sendFile(path.join(__dirname, "public", "airtime.html"));
 });
 
-// Handle Airtime Purchase
+// Airtime Purchase
 app.post("/airtime", async (req, res) => {
   try {
     const { serviceID, amount, mobileNumber } = req.body;

@@ -346,11 +346,6 @@ app.get("/getWithdrawals", async (req, res) => {
 });
 
 // ===== AIRTIME ROUTES =====
-app.get("/airtime", (req, res) => {
-  if (!req.session.user) return res.redirect("/?error=Please login first");
-  res.sendFile(path.join(__dirname, "public", "airtime.html"));
-});
-
 app.post("/airtime", async (req, res) => {
   try {
     const { serviceID, amount, mobileNumber } = req.body;
@@ -364,9 +359,11 @@ app.post("/airtime", async (req, res) => {
     let currentBalance = Number(userData.balance || 0);
 
     // Apply discount
-    const discountedAmount = (Number(amount) * 0.995).toFixed(2);
+    const discountedAmount = Number((Number(amount) * 0.995).toFixed(2));
 
-    if (currentBalance < discountedAmount) return res.json({ success: false, message: "Insufficient balance" });
+    if (currentBalance < discountedAmount) {
+      return res.json({ success: false, message: "Insufficient balance" });
+    }
 
     const response = await fetch("https://jossyfeydataservices.com.ng/api/airtime", {
       method: "POST",
@@ -378,6 +375,7 @@ app.post("/airtime", async (req, res) => {
     });
 
     const result = await response.json();
+
     if (result.status === "success") {
       const newBalance = currentBalance - discountedAmount;
       await userRef.update({ balance: newBalance });
@@ -386,7 +384,7 @@ app.post("/airtime", async (req, res) => {
         type: "airtime",
         phone: mobileNumber,
         network: result.data.network,
-        amount: result.data.amount,
+        amount: amount,
         charged: discountedAmount,
         reference: result.data.reference,
         status: result.data.status,

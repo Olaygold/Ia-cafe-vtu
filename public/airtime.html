@@ -5,8 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buy Airtime - IA Cafe</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #1c1c2b;
+      color: #fff;
+    }
+    .card {
+      background: #2a2a40;
+      border-radius: 12px;
+      border: none;
+    }
+    .btn-success {
+      background: #6a4cdb;
+      border: none;
+    }
+    .btn-success:hover {
+      background: #593bc7;
+    }
+    .alert-info {
+      background: #6a4cdb;
+      color: #fff;
+      border: none;
+    }
+    .list-group-item {
+      background: #2a2a40;
+      border: 1px solid #3a3a55;
+      color: #ddd;
+    }
+  </style>
 </head>
-<body class="bg-light">
+<body>
   <div class="container py-4">
     <div class="card shadow p-4">
       <h3 class="text-center mb-3">📱 Buy Airtime</h3>
@@ -22,10 +50,10 @@
           <label for="serviceID" class="form-label">Network</label>
           <select name="serviceID" id="serviceID" class="form-select" required>
             <option value="">Select Network</option>
-            <option value="100">MTN</option>
-            <option value="101">AIRTEL</option>
-            <option value="102">GLO</option>
-            <option value="103">9MOBILE</option>
+            <option value="1">MTN</option>
+            <option value="2">AIRTEL</option>
+            <option value="3">GLO</option>
+            <option value="4">9MOBILE</option>
           </select>
         </div>
         <div class="mb-3">
@@ -57,7 +85,6 @@
       if (result.success) {
         document.getElementById("walletBalance").innerText = Number(result.user.balance).toFixed(2);
 
-        // Filter only airtime transactions
         const airtimeTxns = Object.values(result.transactions || {})
           .filter(txn => txn.type === "airtime");
 
@@ -98,12 +125,13 @@
     document.getElementById("airtimeResult").innerHTML = `<div class="alert alert-warning">⏳ Processing your request...</div>`;
 
     try {
-      const response = await fetch("/buy-airtime", {
+      const response = await fetch("/airtime", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
       });
       const result = await response.json();
+      console.log("API Response:", result);
 
       if (result.success) {
         document.getElementById("airtimeResult").innerHTML = 

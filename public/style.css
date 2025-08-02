@@ -1,116 +1,181 @@
+/* Global Styles */
 body {
   font-family: Arial, sans-serif;
   background: linear-gradient(to right, #3b0066, #7e3ff2);
   color: white;
   margin: 0;
-  padding: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
+/* Container for main content */
 .container {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px;
-}
-
-/* Balance + Action Buttons */
-.balance-card {
   width: 95%;
-  max-width: 400px;
-  padding: 15px;
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, #6a11cb, #2575fc);
-  color: white;
-  border-radius: 15px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  text-align: center;
-  font-size: 16px;
+  max-width: 1200px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-.action-buttons {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 10px;
+/* Form Container (Login/Register) */
+.form-container {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 30px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  margin: auto;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
-.action-buttons button {
-  flex: 1;
-  margin: 5px;
+
+input, button {
+  width: 90%;
   padding: 12px;
-  background: #7e3ff2;
+  margin: 12px 0;
+  border-radius: 8px;
   border: none;
-  border-radius: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+button {
+  background: #7e3ff2;
   color: white;
   font-weight: bold;
   cursor: pointer;
   transition: 0.3s;
 }
-.action-buttons button:hover {
+button:hover {
   background: #9c5dfc;
+  transform: scale(1.03);
+}
+a { 
+  color: #ffccff; 
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
 }
 
-/* Services Grid */
+/* Side Menu */
+.side-menu {
+  height: 100%;
+  width: 0;
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  background-color: #111;
+  overflow-x: hidden;
+  transition: 0.4s;
+  padding-top: 60px;
+}
+.side-menu a {
+  padding: 15px 25px;
+  text-decoration: none;
+  font-size: 18px;
+  color: #f1f1f1;
+  display: block;
+  transition: 0.3s;
+}
+.side-menu a:hover {
+  background-color: #575757;
+}
+.side-menu .closebtn {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 30px;
+}
+#mainContent {
+  transition: margin-left 0.4s;
+  padding: 20px;
+}
+
+/* Balance Card */
+.balance-card {
+  background: linear-gradient(135deg, #6a11cb, #2575fc);
+  color: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+/* Fund Card */
+.fund-card {
+  background: #fff;
+  color: #333;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Service Grid */
 .services-grid {
-  width: 100%;
-  max-width: 420px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 12px;
-  margin-top: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
 }
 .service-card {
-  background: #fff;
+  background: white;
   color: #333;
   padding: 15px;
   border-radius: 12px;
   text-align: center;
   font-size: 14px;
   font-weight: bold;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 .service-card:hover {
-  transform: scale(1.05);
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.25);
 }
 .service-card i {
-  font-size: 20px;
+  font-size: 22px;
   color: #7e3ff2;
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 /* Transaction History */
 .transaction-history {
-  margin-top: 20px;
-  width: 95%;
-  max-width: 450px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.6);
   padding: 15px;
   border-radius: 12px;
-  text-align: center;
-  font-size: 13px;
+  margin-top: 20px;
+  font-size: 14px;
+  overflow-x: auto;
 }
 .transaction-history table {
   width: 100%;
   border-collapse: collapse;
   color: white;
 }
-.transaction-history th, .transaction-history td {
-  padding: 8px;
+.transaction-history th, 
+.transaction-history td {
+  padding: 10px;
   border-bottom: 1px solid #666;
+  text-align: center;
 }
 
-/* Bottom Nav */
+/* Bottom Navigation */
 .bottom-nav {
   background: #111;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 10px 0;
+  padding: 12px 0;
   position: fixed;
   bottom: 0;
   width: 100%;
@@ -125,5 +190,29 @@ body {
 .bottom-nav i {
   display: block;
   font-size: 18px;
-  margin-bottom: 3px;
+  margin-bottom: 5px;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+  .balance-card, .fund-card {
+    font-size: 16px;
+  }
+  .services-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .form-container {
+    width: 90%;
+    padding: 20px;
+  }
+  .service-card {
+    font-size: 13px;
+    padding: 12px;
+  }
+  .service-card i {
+    font-size: 20px;
+  }
   }

@@ -339,6 +339,84 @@ app.get("/getWithdrawals", async (req, res) => {
 });
 
 
+
+app.post("/buy-airtime", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.json({ success: false, message: "Not logged in" });
+    }
+
+    const { serviceID, amount, mobileNumber } = req.body;
+    const userId = req.session.user.uid;
+
+    // Fetch user balance
+    const userRef = database.ref(`vtu/users/${userId}`);
+    const userSnap = await userRef.get();
+    if (!userSnap.exists()) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    let userData = userSnap.val();
+    let currentBalance = Number(userData.balance || 0);
+
+    // Apply 0.5% discount
+    const discountedAmount = (Number(amount) * 0.995).toFixed(2);
+
+    if (currentBalance < discountedAmount) {
+      return res.json({ success: false, message: "Insufficient balance" });
+    }
+
+    // Call API
+    const response = await fetch("https://jossyfeydataservices.com.ng/api/airtime", {
+      method: "POST",
+      headers: {
+        "Authorization": `Token ${process.env.DATAVTU_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        serviceID,
+        amount: discountedAmount,
+        mobileNumber
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.status === "success") {
+      // Deduct balance
+      const newBalance = currentBalance - discountedAmount;
+      await userRef.update({ balance: newBalance });
+
+      // Save transaction
+      await database.ref(`vtu/users/${userId}/transactions`).push({
+        type: "airtime",
+        phone: mobileNumber,
+        network: result.data.network,
+        amount: result.data.amount,
+        charged: discountedAmount,
+        reference: result.data.reference,
+        status: result.data.status,
+        date: new Date().toISOString()
+      });
+
+      return res.json({
+        success: true,
+        message: result.message,
+        data: result.data,
+        balance: newBalance
+      });
+    } else {
+      return res.json({ success: false, message: result.message });
+    }
+
+  } catch (error) {
+    console.error("Airtime Purchase Error:", error);
+    return res.json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+
 // API endpoint to fetch logged-in user info
 app.get("/api/user", async (req, res) => {
   if (!req.session.user) {

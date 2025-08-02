@@ -201,6 +201,10 @@
               <select class="form-select" id="withdrawBank" required>
                 <option value="">Select Bank</option>
               </select>
+              <div class="mb-3">
+  <label class="form-label">Account Name</label>
+  <input type="text" class="form-control" id="accountName" readonly>
+              </div>
             </div>
             <div class="mb-3">
               <label class="form-label">Amount (₦)</label>
@@ -398,6 +402,40 @@
         console.error("Error loading withdrawals:", err);
       }
     }
+
+    // Auto Account Lookup when account number & bank are entered
+async function lookupAccount() {
+  const accountNumber = document.getElementById("withdrawAccount").value.trim();
+  const bankCode = document.getElementById("withdrawBank").value;
+  const accountNameField = document.getElementById("accountName");
+
+  if (accountNumber.length >= 10 && bankCode) {
+    try {
+      accountNameField.value = "⏳ Resolving...";
+      const res = await fetch("/lookupAccount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountNumber, bankCode })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        accountNameField.value = data.accountName;
+      } else {
+        accountNameField.value = "❌ " + data.message;
+      }
+    } catch (err) {
+      console.error("Lookup Error:", err);
+      accountNameField.value = "❌ Lookup failed";
+    }
+  } else {
+    accountNameField.value = "";
+  }
+}
+
+// Trigger lookup when account number or bank changes
+document.getElementById("withdrawAccount").addEventListener("input", lookupAccount);
+document.getElementById("withdrawBank").addEventListener("change", lookupAccount);
   </script>
 </body>
 </html>

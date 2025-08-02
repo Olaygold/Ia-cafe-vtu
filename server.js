@@ -346,6 +346,16 @@ app.get("/getWithdrawals", async (req, res) => {
 });
 
 // ===== AIRTIME ROUTES =====
+
+// ===== AIRTIME ROUTES =====
+
+// Show Airtime Page
+app.get("/airtime", (req, res) => {
+  if (!req.session.user) return res.redirect("/?error=Please login first");
+  res.sendFile(path.join(__dirname, "public", "airtime.html"));
+});
+
+// Handle Airtime Purchase
 app.post("/airtime", async (req, res) => {
   try {
     const { serviceID, amount, mobileNumber } = req.body;
@@ -353,17 +363,17 @@ app.post("/airtime", async (req, res) => {
 
     const userRef = database.ref(`vtu/users/${userId}`);
     const userSnap = await userRef.get();
-    if (!userSnap.exists()) return res.json({ success: false, message: "User not found" });
+    if (!userSnap.exists()) 
+      return res.json({ success: false, message: "User not found" });
 
     const userData = userSnap.val();
     let currentBalance = Number(userData.balance || 0);
 
     // Apply discount
-    const discountedAmount = Number((Number(amount) * 0.995).toFixed(2));
+    const discountedAmount = (Number(amount) * 0.995).toFixed(2);
 
-    if (currentBalance < discountedAmount) {
+    if (currentBalance < discountedAmount) 
       return res.json({ success: false, message: "Insufficient balance" });
-    }
 
     const response = await fetch("https://jossyfeydataservices.com.ng/api/airtime", {
       method: "POST",
@@ -384,14 +394,19 @@ app.post("/airtime", async (req, res) => {
         type: "airtime",
         phone: mobileNumber,
         network: result.data.network,
-        amount: amount,
+        amount: result.data.amount,
         charged: discountedAmount,
         reference: result.data.reference,
         status: result.data.status,
         date: new Date().toISOString()
       });
 
-      return res.json({ success: true, message: result.message, data: result.data, balance: newBalance });
+      return res.json({ 
+        success: true, 
+        message: result.message, 
+        data: result.data, 
+        balance: newBalance 
+      });
     } else {
       return res.json({ success: false, message: result.message });
     }
@@ -400,6 +415,8 @@ app.post("/airtime", async (req, res) => {
     return res.json({ success: false, message: "Internal Server Error" });
   }
 });
+
+
 
 // ===== USER INFO =====
 app.get("/api/user", async (req, res) => {

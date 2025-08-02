@@ -2,67 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>IA Cafe VTU - Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <title>IA Cafe VTU Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     body {
       background: linear-gradient(135deg, #3b0066, #7e3ff2);
       color: white;
-      font-family: "Segoe UI", Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding-top: 80px;
-      padding-bottom: 100px;
+      padding-bottom: 70px;
     }
     nav.navbar {
       background: rgba(0, 0, 0, 0.95);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
       position: fixed;
       top: 0;
       width: 100%;
       z-index: 1000;
     }
-    nav .brand-title {
-      font-weight: bold;
-      font-size: 20px;
-      color: #ffdd57;
-      letter-spacing: 1px;
-    }
     .wallet-display {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
       margin-left: auto;
       display: flex;
       align-items: center;
-      gap: 15px;
+      gap: 12px;
+    }
+    /* Hero Section */
+    .hero-banner {
+      background: url('https://img.freepik.com/free-vector/gradient-dynamic-purple-lines-background_23-2148995758.jpg') no-repeat center center/cover;
+      text-align: center;
+      padding: 80px 20px 60px;
+      color: white;
+    }
+    .hero-banner h1 {
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+    .hero-banner p {
+      font-size: 1.1rem;
+      margin-top: 10px;
     }
     .services-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 20px;
-      margin: 30px auto;
+      gap: 15px;
+      margin: 25px auto;
       max-width: 1100px;
       padding: 10px;
     }
     .service-card {
       background: white;
       color: black;
-      border-radius: 15px;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.25);
-      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      padding: 25px 15px;
       text-align: center;
-      transition: transform 0.3s, background 0.3s;
+      transition: all 0.3s ease;
       cursor: pointer;
     }
     .service-card:hover {
       transform: translateY(-6px);
-      background: #f7f3ff;
+      background: #f8f8f8;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.4);
     }
     .service-card i {
-      font-size: 32px;
+      font-size: 30px;
       color: #7e3ff2;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .bottom-nav {
       background: rgba(0,0,0,0.95);
@@ -72,50 +82,76 @@
       position: fixed;
       bottom: 0;
       width: 100%;
-      height: 70px;
+      height: 60px;
       z-index: 1000;
-      border-top: 2px solid #7e3ff2;
+      box-shadow: 0 -3px 10px rgba(0,0,0,0.4);
     }
     .bottom-nav a {
       color: white;
       text-align: center;
-      font-size: 14px;
+      font-size: 13px;
       text-decoration: none;
     }
     .bottom-nav a i {
       display: block;
-      font-size: 22px;
+      font-size: 20px;
     }
     .bottom-nav a:hover {
-      color: #ffdd57;
+      color: #b58cff;
     }
     .history-card {
       max-width: 1100px;
-      margin: 40px auto;
+      margin: 35px auto;
       background: white;
       color: black;
-      border-radius: 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      padding: 25px;
-    }
-    footer {
-      background: rgba(0,0,0,0.9);
-      color: #ccc;
-      text-align: center;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       padding: 20px;
+      overflow-x: auto;
+    }
+    /* Side Menu */
+    .side-menu {
+      height: 100%;
+      width: 0;
       position: fixed;
-      bottom: 70px;
-      width: 100%;
-      font-size: 14px;
-      border-top: 1px solid #444;
+      z-index: 1500;
+      top: 0;
+      left: 0;
+      background: rgba(0,0,0,0.97);
+      overflow-x: hidden;
+      transition: 0.4s;
+      padding-top: 60px;
     }
-    footer a {
-      color: #ffdd57;
+    .side-menu a {
+      padding: 10px 25px;
       text-decoration: none;
-      margin: 0 8px;
+      font-size: 16px;
+      color: white;
+      display: block;
+      transition: 0.3s;
     }
-    footer a:hover {
-      text-decoration: underline;
+    .side-menu a:hover {
+      color: #b58cff;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+    }
+    .side-menu .closebtn {
+      position: absolute;
+      top: 20px;
+      right: 25px;
+      font-size: 28px;
+    }
+    @media (max-width: 768px) {
+      .wallet-display {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .hero-banner h1 {
+        font-size: 1.8rem;
+      }
+      .hero-banner p {
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
@@ -135,12 +171,11 @@
     <a href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
   </div>
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-dark px-3">
-    <span style="font-size:30px;cursor:pointer;color:white;" onclick="toggleMenu()">&#9776;</span>
-    <span class="brand-title ms-3">IA Cafe VTU</span>
-    <h6 class="text-white ms-3" id="greetingText"></h6>
-    <h6 class="text-warning ms-2" id="userName"></h6>
+  <!-- Fixed Top Navbar -->
+  <nav class="navbar navbar-dark p-3">
+    <span style="font-size:28px;cursor:pointer;" onclick="toggleMenu()">&#9776;</span>
+    <h5 class="ms-3" id="greetingText"></h5>
+    <h5 class="text-warning ms-2" id="userName"></h5>
     <div class="wallet-display">
       <span id="userBalance">₦0.00</span>
       <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#fundWalletModal">
@@ -152,13 +187,21 @@
     </div>
   </nav>
 
+  <!-- Hero Banner -->
+  <section class="hero-banner">
+    <h1>Welcome to IA Cafe VTU</h1>
+    <p>Your trusted hub for Airtime, Data, Bills, and more — Fast & Secure</p>
+  </section>
+
   <!-- Main Content -->
   <div id="mainContent" class="container text-center">
-    <h3 class="mt-4">Welcome to IA Cafe VTU</h3>
-    <p class="lead">Fast, Reliable & Secure VTU Services at Your Fingertips</p>
-
     <div class="services-grid">
-      <div class="service-card"><i class="bi bi-phone"></i><h6>Airtime</h6></div>
+      <a href="/airtime" class="service-link">
+        <div class="service-card">
+          <i class="bi bi-phone"></i>
+          <h6>Airtime</h6>
+        </div>
+      </a>
       <div class="service-card"><i class="bi bi-wifi"></i><h6>Data</h6></div>
       <div class="service-card"><i class="bi bi-lightning"></i><h6>Electricity</h6></div>
       <div class="service-card"><i class="bi bi-tv"></i><h6>Cable TV</h6></div>
@@ -173,35 +216,103 @@
 
     <!-- Transaction History -->
     <div class="history-card">
-      <h5>Transaction History</h5>
-      <table class="table table-striped table-hover mt-3">
-        <thead>
-          <tr>
-            <th>Service</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody id="historyTable">
-          <tr><td colspan="4" class="text-center">No transactions yet.</td></tr>
-        </tbody>
-      </table>
+      <h5 class="fw-bold text-center mb-3">Transaction History</h5>
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mt-3">
+          <thead class="table-dark">
+            <tr>
+              <th>Service</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="historyTable">
+            <tr><td colspan="4" class="text-center">No transactions yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer>
-    <p>&copy; 2025 IA Cafe VTU. All Rights Reserved.</p>
-    <p>
-      <a href="#">About Us</a> | 
-      <a href="#">Contact</a> | 
-      <a href="#">Privacy Policy</a> | 
-      <a href="#">Terms & Conditions</a>
-    </p>
-  </footer>
+  <!-- Fund Wallet Modal -->
+  <div class="modal fade" id="fundWalletModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-dark">
+        <div class="modal-header">
+          <h5 class="modal-title">Fund Your Wallet</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="accountDetails"></div>
+          <button id="generateAccountBtn" class="btn btn-primary mt-3">Generate Account Number</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Bottom Navigation -->
+  <!-- Withdraw Wallet Modal -->
+  <div class="modal fade" id="withdrawWalletModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content text-dark">
+        <div class="modal-header">
+          <h5 class="modal-title">Withdraw Funds</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-danger">
+            🔔 Note: Withdrawals attract a 4.5% service charge.
+            Funds usually arrive within <b>1 - 25 minutes</b>.
+          </p>
+          <form id="withdrawForm">
+            <div class="mb-3">
+              <label class="form-label">Bank Account Number</label>
+              <input type="text" class="form-control" id="withdrawAccount" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Bank Name</label>
+              <select class="form-select" id="withdrawBank" required>
+                <option value="">Select Bank</option>
+              </select>
+              <div class="mb-3">
+                <label class="form-label">Account Name</label>
+                <input type="text" class="form-control" id="accountName" readonly>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Amount (₦)</label>
+              <input type="number" class="form-control" id="withdrawAmount" min="500" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Amount You’ll Receive (₦)</label>
+              <input type="text" class="form-control" id="netAmount" readonly>
+            </div>
+            <button type="submit" class="btn btn-warning w-100">Request Withdrawal</button>
+          </form>
+          <hr>
+          <h6>Your Withdrawal History</h6>
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Fee</th>
+                  <th>Net Received</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="withdrawHistory">
+                <tr><td colspan="5" class="text-center">No withdrawals yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fixed Bottom Navbar -->
   <div class="bottom-nav">
     <a href="#"><i class="bi bi-house-door"></i>Home</a>
     <a href="#"><i class="bi bi-people"></i>Team</a>
@@ -210,6 +321,18 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Side menu toggle
+    function toggleMenu() {
+      let menu = document.getElementById("sideMenu");
+      if (menu.style.width === "250px") {
+        menu.style.width = "0";
+        document.getElementById("mainContent").style.marginLeft = "0";
+      } else {
+        menu.style.width = "250px";
+        document.getElementById("mainContent").style.marginLeft = "250px";
+      }
+    }
+
     // Greeting message
     function setGreeting() {
       const hour = new Date().getHours();
@@ -220,6 +343,165 @@
       document.getElementById("greetingText").innerText = greet;
     }
     setGreeting();
+
+    // Fetch user info
+    async function loadUserData() {
+      try {
+        const res = await fetch("/api/user");
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById("userName").innerText = data.user.fullName;
+          document.getElementById("userBalance").innerText = "₦" + (data.user.balance || 0);
+          if (data.user.accountDetails) {
+            document.getElementById("accountDetails").innerHTML = `
+              <p><b>Bank:</b> ${data.user.accountDetails.bank}</p>
+              <p><b>Account Number:</b> ${data.user.accountDetails.accountNumber}</p>
+              <p><b>Account Name:</b> ${data.user.accountDetails.accountName}</p>
+            `;
+            document.getElementById("generateAccountBtn").style.display = "none";
+          }
+        } else {
+          window.location.href = "/";
+        }
+      } catch (err) {
+        console.error("Error loading user:", err);
+      }
+    }
+    loadUserData().then(() => {
+      loadTransactionHistory();
+    });
+
+    // Transaction history
+    async function loadTransactionHistory() {
+      try {
+        const res = await fetch("/api/user");
+        const data = await res.json();
+        if (data.success && data.transactions) {
+          const historyTable = document.getElementById("historyTable");
+          historyTable.innerHTML = "";
+          Object.values(data.transactions).reverse().forEach(tx => {
+            const row = `
+              <tr>
+                <td>${tx.type || "N/A"}</td>
+                <td>₦${tx.netAmount || tx.grossAmount || 0}</td>
+                <td class="${tx.status === 'SUCCESS' ? 'text-success' : tx.status === 'PENDING' ? 'text-warning' : 'text-danger'}">${tx.status}</td>
+                <td>${new Date(tx.date).toLocaleString()}</td>
+              </tr>
+            `;
+            historyTable.insertAdjacentHTML("beforeend", row);
+          });
+        }
+      } catch (err) {
+        console.error("Error loading history:", err);
+      }
+    }
+
+    // Load Banks
+    async function loadBanks() {
+      try {
+        const res = await fetch("/getBanks");
+        const data = await res.json();
+        if (data.success) {
+          const bankSelect = document.getElementById("withdrawBank");
+          bankSelect.innerHTML = '<option value="">Select Bank</option>';
+          data.banks.forEach(bank => {
+            const option = document.createElement("option");
+            option.value = bank.code;
+            option.textContent = bank.name;
+            bankSelect.appendChild(option);
+          });
+        }
+      } catch (err) {
+        console.error("Error loading banks:", err);
+      }
+    }
+    loadBanks();
+
+    // Auto-calc Net Amount
+    document.getElementById("withdrawAmount").addEventListener("input", (e) => {
+      const amount = parseFloat(e.target.value) || 0;
+      const fee = amount * 0.045;
+      document.getElementById("netAmount").value = (amount - fee).toFixed(2);
+    });
+
+    // Handle Withdraw Request
+    document.getElementById("withdrawForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const account = document.getElementById("withdrawAccount").value;
+      const bankCode = document.getElementById("withdrawBank").value;
+      const amount = document.getElementById("withdrawAmount").value;
+      try {
+        const res = await fetch("/withdraw", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ account, bankCode, amount })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert("Withdrawal request submitted successfully!");
+          document.getElementById("withdrawForm").reset();
+          loadWithdrawals();
+          loadUserData(); // update balance
+        } else {
+          alert("Error: " + (data.message || "Something went wrong"));
+        }
+      } catch (err) {
+        console.error("Withdrawal error:", err);
+        alert("Failed to process withdrawal. Try again later.");
+      }
+    });
+
+    // Load Withdrawals History
+    async function loadWithdrawals() {
+      try {
+        const res = await fetch("/api/user");
+        const data = await res.json();
+        if (data.success && data.withdrawals) {
+          const historyTable = document.getElementById("withdrawHistory");
+          historyTable.innerHTML = "";
+          Object.values(data.withdrawals).reverse().forEach(wd => {
+            const row = `
+              <tr>
+                <td>${new Date(wd.date).toLocaleString()}</td>
+                <td>₦${wd.amount}</td>
+                <td>₦${wd.fee}</td>
+                <td>₦${wd.netAmount}</td>
+                <td class="${wd.status === 'SUCCESS' ? 'text-success' : wd.status === 'PENDING' ? 'text-warning' : 'text-danger'}">
+                  ${wd.status}
+                </td>
+              </tr>
+            `;
+            historyTable.insertAdjacentHTML("beforeend", row);
+          });
+        }
+      } catch (err) {
+        console.error("Error loading withdrawal history:", err);
+      }
+    }
+
+    // Generate Account Number
+    document.getElementById("generateAccountBtn").addEventListener("click", async () => {
+      try {
+        const res = await fetch("/generateAccount", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById("accountDetails").innerHTML = `
+            <p><b>Bank:</b> ${data.bank}</p>
+            <p><b>Account Number:</b> ${data.accountNumber}</p>
+            <p><b>Account Name:</b> ${data.accountName}</p>
+          `;
+          document.getElementById("generateAccountBtn").style.display = "none";
+        } else {
+          alert("Error: " + (data.message || "Unable to generate account"));
+        }
+      } catch (err) {
+        console.error("Error generating account:", err);
+        alert("Failed to generate account. Try again later.");
+      }
+    });
   </script>
 </body>
 </html>
